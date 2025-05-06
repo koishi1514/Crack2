@@ -1,0 +1,5 @@
+# This directory is a Syncthing folder marker.
+# Do not delete.
+
+folderID: ajtlg-h54md
+created: 2025-03-23T22:40:15+08:00
