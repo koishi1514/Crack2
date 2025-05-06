@@ -3,6 +3,17 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/Semi supervised" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/dataset/AEL" />
+      <excludeFolder url="file://$MODULE_DIR$/dataset/CFD" />
+      <excludeFolder url="file://$MODULE_DIR$/dataset/CRACK500" />
+      <excludeFolder url="file://$MODULE_DIR$/dataset/ConcreteCrack" />
+      <excludeFolder url="file://$MODULE_DIR$/dataset/CrackTree" />
+      <excludeFolder url="file://$MODULE_DIR$/dataset/Crackseg9k" />
+      <excludeFolder url="file://$MODULE_DIR$/dataset/DeepCrack" />
+      <excludeFolder url="file://$MODULE_DIR$/dataset/GAPS384" />
+      <excludeFolder url="file://$MODULE_DIR$/dataset/cracktree200" />
+      <excludeFolder url="file://$MODULE_DIR$/dataset/pavement crack datasets" />
+      <excludeFolder url="file://$MODULE_DIR$/output/test" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
