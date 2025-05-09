@@ -76,6 +76,7 @@ def train(args, snapshot_path):
     optimizer = optim.AdamW(model.parameters(), lr=base_lr, weight_decay=0.0001)
 
     ce_loss = CrossEntropyLoss()
+    bce_loss = BCEWithLogitsLoss()
     dice_loss = losses.DiceLoss(num_classes)
 
     writer = SummaryWriter(snapshot_path + '/log')
@@ -94,13 +95,16 @@ def train(args, snapshot_path):
 
         tbar = tqdm(trainloader, desc='epoch {}'.format(epoch_num))
         for i_batch, sampled_batch in enumerate(tbar):
-            volume_batch, label_batch = sampled_batch['image'], sampled_batch['label']
+            volume_batch, label_batch = sampled_batch['image'], sampled_batch['label'].squeeze(1)
             volume_batch, label_batch = volume_batch.cuda(), label_batch.cuda()
 
-            outputs = model(volume_batch)
+            _, outputs = model(volume_batch)
+            # if args.model == 'Crackformer':
+            #     loss_ce = bce_loss(outputs, label_batch)
+            # 原始版本模型适用于多分类
             outputs_soft = torch.softmax(outputs, dim=1)
-
             loss_ce = ce_loss(outputs, label_batch.long())
+
             loss_dice = dice_loss(
                 outputs_soft, label_batch.unsqueeze(1))
             supervised_loss = 0.5 * (loss_dice + loss_ce)

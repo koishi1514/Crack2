@@ -132,10 +132,12 @@ class BaseDataSets(Dataset):
                 transforms.RandomVerticalFlip(p=0.5),
                 # transforms.RandomApply(transforms.RandomRotation([0,90,180,270]), p=0.5),
                 transforms.RandomApply([transforms.RandomRotation(20)], p=0.5),
+                transforms.Resize((256, 256)),
                 transforms.ToTensor()
             ])
         else:
             self.transform = transforms.Compose([
+                transforms.Resize((256, 256)),
                 transforms.ToTensor()
             ])
 
@@ -187,17 +189,35 @@ class BaseDataSets(Dataset):
         mask = Image.open(os.path.join(self.data_dir, mask_path)).convert('L')
 
         sample = {}
+
+
+        # if image.size()[0] > image.size()[1]:
+        #     image = torch.transpose(image, 1, 2)
+        #     mask = torch.transpose(mask, 1, 2)
+
+        image1 = np.array(image)
+        mask1 = np.array(mask)
         image, mask = self.transform(image, mask)
 
-        if image.size()[1] > image.size()[2]:
-            image = torch.transpose(image, 1, 2)
-            mask = torch.transpose(mask, 1, 2)
 
         # image1 = transforms.ToPILImage()(image)
         # mask1 = transforms.ToPILImage()(mask)
         # image1.save(os.path.join(out_path, image_path))
         # mask1.save(os.path.join(out_path, mask_path))
         # print(2)
+
+        # fig, axes = plt.subplots(2, 2, figsize=(12, 6))
+        # axes[0][0].imshow(image1)
+        # axes[0][0].axis('off')
+        # axes[0][1].imshow(image.permute((1, 2, 0)))
+        # axes[0][1].axis('off')
+        # axes[1][0].imshow(mask1)
+        # axes[1][0].axis('off')
+        # axes[1][1].imshow(mask.permute((1, 2, 0)))
+        # axes[1][1].axis('off')
+        # plt.tight_layout()
+        # plt.show()
+        # plt.close()
 
         # if self.split == 'retrain' and case in self.pseudo_labeled_name:
         #     sample = StrongAugment(sample)

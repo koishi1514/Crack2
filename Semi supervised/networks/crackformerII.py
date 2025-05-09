@@ -297,7 +297,7 @@ class Up(nn.Module):
 
 class crackformer(nn.Module):
 
-    def __init__(self, in_channels, final_hidden_dims=64):
+    def __init__(self, in_channels, final_hidden_dims=64, num_classes=2):
         super(crackformer, self).__init__()
 
         self.in_channels = in_channels
@@ -305,6 +305,7 @@ class crackformer(nn.Module):
         self.layer_num = [2, 2, 3, 3, 3]
         self.embed_dims = [64, 128, 256, 512, 512]
         self.hidden_dims = final_hidden_dims
+        self.num_classes = num_classes
         down_list = []
 
         self.down1 = Down(in_channels=3, out_channels=self.embed_dims[0], layer_num=self.layer_num[0], conv_layer=True)
@@ -326,7 +327,7 @@ class crackformer(nn.Module):
         self.fuse2 = Fuse(ConvRelu(self.embed_dims[1] + self.embed_dims[0], self.hidden_dims), self.hidden_dims, scale=2)
         self.fuse1 = Fuse(ConvRelu(self.embed_dims[0] + self.embed_dims[0], self.hidden_dims), self.hidden_dims, scale=1)
 
-        self.final = Conv1X1(5, 1)
+        self.final = Conv1X1(5, num_classes)
 
         self.LABlock_1 = LABlock(self.embed_dims[0], self.hidden_dims)
         self.LABlock_2 = LABlock(self.embed_dims[1], self.hidden_dims)

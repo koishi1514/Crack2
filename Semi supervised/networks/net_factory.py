@@ -27,7 +27,7 @@ def net_factory(net_type="unet", in_chns=1, class_num=3):
     elif net_type == "nnUNet":
         net = initialize_network(num_classes=class_num).cuda()
     elif net_type == "crackformer":
-        net = crackformer(in_channels=in_chns, final_hidden_dims=64).cuda()
+        net = crackformer(in_channels=in_chns, final_hidden_dims=64, num_classes=2).cuda()
     else:
         net = None
     return net
