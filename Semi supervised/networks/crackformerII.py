@@ -372,7 +372,7 @@ class crackformer(nn.Module):
 
         output = self.final(torch.cat([fuse5, fuse4, fuse3, fuse2, fuse1], 1))
 
-        return [fuse5, fuse4, fuse3, fuse2, fuse1], output
+        return  output, [fuse5, fuse4, fuse3, fuse2, fuse1]
 
 
 if __name__ == '__main__':

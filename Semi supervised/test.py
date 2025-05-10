@@ -1,6 +1,9 @@
 import argparse
 import os
 import shutil
+
+from Demos.RegCreateKeyTransacted import trans
+
 import json
 
 import numpy as np
@@ -14,12 +17,12 @@ import logging
 
 # from networks.efficientunet import UNet
 from networks.net_factory import net_factory
-from dataloaders.CAMUS_labeled import BaseDataSets
+from dataloaders.Crack500_labeled import BaseDataSets
 from torch.utils.data.dataloader import DataLoader
 from PIL import Image
 import cv2
 
-from configs.config_test import args as FLAGS
+from configs.config_supervised_test import args
 
 def draw_sem_seg_by_cv2_sum(image, gt_sem_seg, pred_sem_seg, palette):
     '''
@@ -55,17 +58,20 @@ def calculate_metric_percase(pred, gt):
     pred[pred > 0] = 1
     gt[gt > 0] = 1
     dice = metric.binary.dc(pred, gt)
-    asd = metric.binary.asd(pred, gt)
-    hd95 = metric.binary.hd95(pred, gt)
-    return dice, hd95, asd
+    # asd = metric.binary.asd(pred, gt)
+    # hd95 = metric.binary.hd95(pred, gt)
+    return dice, 0, 0
 
 
-def test_single_volume(case, net, test_save_path, FLAGS):
+def test_single_volume(case, net, test_save_path, args):
     # h5f = h5py.File(FLAGS.root_path + "/data/{}.h5".format(case), 'r')
     # image = h5f['image'][:]
     # label = h5f['label'][:]
-    image, label = case['image'].unsqueeze(0).cuda(), case['label'].cuda()
-    label = label.squeeze(0).cpu().detach().numpy()
+    # image, label = case['image'].unsqueeze(0).cuda(), case['label'].cuda()
+    # label = label.squeeze(0).cpu().detach().numpy()
+
+    image = case['image'].cuda()
+    label = case['label'].cpu().detach().numpy()
     name = case['name'][0]
 
     # prediction = np.zeros_like(label)
@@ -74,36 +80,25 @@ def test_single_volume(case, net, test_save_path, FLAGS):
     test_out = net(image)
 
     with torch.no_grad():
-        out = torch.argmax(torch.softmax(
-            net(image), dim=1), dim=1).squeeze(0)
+        out = net(image)
+        if isinstance(out, tuple):
+            out = out[0]
+
+        out_soft = torch.softmax(out, dim=1)
+        out = torch.argmax(out_soft, dim=1)
+
         out = out.cpu().detach().numpy()
         prediction = out
 
-    # for ind in range(image.shape[0]):
-    #     slice = image[ind, :, :]
-    #     x, y = slice.shape[0], slice.shape[1]
-    #     slice = zoom(slice, (256 / x, 256 / y), order=0)
-    #     input = torch.from_numpy(slice).unsqueeze(
-    #         0).unsqueeze(0).float().cuda()
-    #     net.eval()
-    #     with torch.no_grad():
-    #         if FLAGS.output == "unet_urds":
-    #             out_main, _, _, _ = net(input)
-    #         else:
-    #             out_main = net(input)
-    #         out = torch.argmax(torch.softmax(
-    #             out_main, dim=1), dim=1).squeeze(0)
-    #         out = out.cpu().detach().numpy()
-    #         pred = zoom(out, (x / 256, y / 256), order=0)
-    #         prediction[ind] = pred
-    # 需要修改成单分类
+    prediction = prediction.squeeze()
+    label = label.squeeze()
 
     first_metric = calculate_metric_percase(prediction == 1, label == 1)
     # second_metric = calculate_metric_percase(prediction == 2, label == 2)
     # third_metric = calculate_metric_percase(prediction == 3, label == 3)
 
     image = image.squeeze(0).cpu().detach().numpy()
-    image =  np.concatenate([image] * 3, axis=0)
+    # image =  np.concatenate([image] * 3, axis=0)
 
     palette = [[255, 255, 255],[37, 143, 36], [178, 48, 0], [178, 151, 0]]
 
@@ -124,29 +119,30 @@ def test_single_volume(case, net, test_save_path, FLAGS):
     return first_metric
 
 
-def Inference(FLAGS):
+def Inference(args):
     # with open(FLAGS.root_path + '/test.list', 'r') as f:
     #     image_list = f.readlines()
     # image_list = sorted([item.replace('\n', '').split(".")[0]
     #                      for item in image_list])
 
-    name_list_path = os.path.join(FLAGS.root_path, "name.json")
-    frame_split_path = os.path.join(FLAGS.root_path, "frame_split_{}.json".format(FLAGS.labeled_num))
-    print(FLAGS.labeled_num)
-    with open(name_list_path, 'r') as fn:
-        name_dict = json.load(fn)['file_name']
-    with open(frame_split_path, 'r') as ff:
-        split_json = json.load(ff)
-
-    test_idx = split_json['test_idx']
-    image_list = [name_dict[i] for i in test_idx]
+    # name_list_path = os.path.join(FLAGS.root_path, "name.json")
+    # frame_split_path = os.path.join(FLAGS.root_path, "frame_split_{}.json".format(FLAGS.labeled_num))
+    # print(FLAGS.labeled_num)
+    # with open(name_list_path, 'r') as fn:
+    #     name_dict = json.load(fn)['file_name']
+    # with open(frame_split_path, 'r') as ff:
+    #     split_json = json.load(ff)
+    #
+    # test_idx = split_json['test_idx']
+    # image_list = [name_dict[i] for i in test_idx]
 
     # only for fully supervised output
 
-    snapshot_path = "../output/{}_{}patients_labeled/{}".format(
-        FLAGS.exp, FLAGS.labeled_num, FLAGS.model)
-    test_save_path = "../output/{}_{}patients_labeled/{}_predictions/".format(
-        FLAGS.exp, FLAGS.labeled_num, FLAGS.model)
+    snapshot_path = "../output/{}/{}".format(
+        args.exp, args.model)
+
+    test_save_path = "../output/{}/{}_predictions".format(
+        args.exp, args.model)
 
     logger = logging.getLogger("my_logger")
     logger.setLevel(logging.DEBUG)
@@ -159,16 +155,16 @@ def Inference(FLAGS):
     if os.path.exists(test_save_path):
         shutil.rmtree(test_save_path)
     os.makedirs(test_save_path)
-    net = net_factory(net_type=FLAGS.model, in_chns=1,
-                      class_num=FLAGS.num_classes)
+    net = net_factory(net_type=args.model, in_chns=1,
+                      class_num=args.num_classes)
     save_mode_path = os.path.join(
-        snapshot_path, '{}_best_model.pth'.format(FLAGS.model))
+        snapshot_path, '{}_best_model.pth'.format(args.model))
     net.load_state_dict(torch.load(save_mode_path))
     print("init weight from {}".format(save_mode_path))
     net.eval()
 
     from torch.utils.flop_counter import FlopCounterMode
-    inp = torch.randn(1, 1, FLAGS.patch_size[0], FLAGS.patch_size[1]).cuda()
+    inp = torch.randn(1, 3, args.patch_size[0], args.patch_size[1]).cuda()
     flop_counter = FlopCounterMode(mods=net, display=False, depth=None)
     with flop_counter:
         net(inp)
@@ -178,9 +174,10 @@ def Inference(FLAGS):
     first_total = 0.0
     second_total = 0.0
     third_total = 0.0
-    db_test = BaseDataSets(base_dir=FLAGS.root_path, split='test')
+    db_test = BaseDataSets(base_dir=args.data_path, split='test', transform=None)
     testloader = DataLoader(db_test, batch_size=1, shuffle=False, num_workers=0)
 
+    test_num = len(testloader)
     pbar = tqdm(testloader)
     print (len(testloader))
 
@@ -188,7 +185,7 @@ def Inference(FLAGS):
 
     for i, data in enumerate(pbar):
 
-        first_metric = test_single_volume(data, net, test_save_path, FLAGS)
+        first_metric = test_single_volume(data, net, test_save_path, args)
 
         first_total += np.asarray(first_metric)
 
@@ -199,7 +196,7 @@ def Inference(FLAGS):
     #     first_total += np.asarray(first_metric)
     #     second_total += np.asarray(second_metric)
     #     third_total += np.asarray(third_metric)
-    avg_metric = first_total / len(image_list)
+    avg_metric = first_total / test_num
 
     logger.info("Dice: {}, HD95: {}, ASD: {}".format(avg_metric[0], avg_metric[1], avg_metric[2]) )
     return avg_metric
@@ -207,7 +204,7 @@ def Inference(FLAGS):
 
 if __name__ == '__main__':
     # FLAGS = parser.parse_args()
-    metric = Inference(FLAGS)
+    metric = Inference(args)
 
     print(metric)
 

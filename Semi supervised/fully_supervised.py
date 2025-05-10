@@ -98,7 +98,10 @@ def train(args, snapshot_path):
             volume_batch, label_batch = sampled_batch['image'], sampled_batch['label'].squeeze(1)
             volume_batch, label_batch = volume_batch.cuda(), label_batch.cuda()
 
-            _, outputs = model(volume_batch)
+            outputs = model(volume_batch)
+
+            if isinstance(outputs, tuple):
+                outputs = outputs[0]
             # if args.model == 'Crackformer':
             #     loss_ce = bce_loss(outputs, label_batch)
             # 原始版本模型适用于多分类

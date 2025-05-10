@@ -132,12 +132,12 @@ class BaseDataSets(Dataset):
                 transforms.RandomVerticalFlip(p=0.5),
                 # transforms.RandomApply(transforms.RandomRotation([0,90,180,270]), p=0.5),
                 transforms.RandomApply([transforms.RandomRotation(20)], p=0.5),
-                transforms.Resize((256, 256)),
+                transforms.Resize(size=(256, 256), interpolation=transforms.InterpolationMode.NEAREST),
                 transforms.ToTensor()
             ])
         else:
             self.transform = transforms.Compose([
-                transforms.Resize((256, 256)),
+                transforms.Resize(size=(256, 256), interpolation=transforms.InterpolationMode.NEAREST),
                 transforms.ToTensor()
             ])
 
