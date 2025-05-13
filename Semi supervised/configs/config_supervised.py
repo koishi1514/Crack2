@@ -1,23 +1,31 @@
 import  argparse
 import os
 
-dataset = 'CAMUS'
-root_path = os.path.join('../data', dataset)
+from configs.config_for_camus_dataset_test import root_path
+
+dataset = 'CRACK500'
+# CRACK500, CFD
+data_path = os.path.join('../dataset', dataset)
+root_path = '..'
 
 parser = argparse.ArgumentParser()
+
 parser.add_argument('--root_path', type=str,
                     default=root_path, help='Name of Experiment')
+parser.add_argument('--data_path', type=str,
+                    default=data_path, help='Name of Experiment')
 parser.add_argument('--dataset', type=str,
-                    default=dataset, help='Name of Experiment')
+                    default=dataset, help='Name of Dataset')
 parser.add_argument('--exp', type=str,
-                    default='CAMUS/Fully_supervised_unet_50ep', help='experiment_name')
-parser.add_argument('--output', type=str,
-                    default='unet', help='model_name')
+                    default='test', help='experiment_name')
+parser.add_argument('--model', type=str,
+                    default='crackformer', help='model_name')
+
 parser.add_argument('--max_iterations', type=int,
                     default=30000, help='maximum epoch number to train')
 parser.add_argument('--epoch_num', type=int, default=50,
                     help='epochs')
-parser.add_argument('--batch_size', type=int, default=20,
+parser.add_argument('--batch_size', type=int, default=32,
                     help='batch_size per gpu')
 parser.add_argument('--deterministic', type=int,  default=1,
                     help='whether use deterministic training')

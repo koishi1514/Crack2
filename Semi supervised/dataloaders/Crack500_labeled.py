@@ -7,10 +7,7 @@ import random
 import numpy as np
 from glob import glob
 
-from monai.transforms import ToTensor
 from torch.utils.data import Dataset
-# import h5py
-from scipy.ndimage.interpolation import zoom
 
 import torchvision.transforms.v2 as transforms
 import itertools
@@ -25,7 +22,6 @@ import math
 
 from configs.config_supervised_test import data_path
 
-# 待施工 图像长宽不相等会导致网络训练问题
 def blur(img, p=0.5):
     if random.random() < p:
         sigma = np.random.uniform(0.1, 2.0)

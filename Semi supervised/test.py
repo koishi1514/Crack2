@@ -7,11 +7,8 @@ from Demos.RegCreateKeyTransacted import trans
 import json
 
 import numpy as np
-import SimpleITK as sitk
 import torch
 from medpy import metric
-from scipy.ndimage import zoom
-from scipy.ndimage.interpolation import zoom
 from tqdm import tqdm
 import logging
 

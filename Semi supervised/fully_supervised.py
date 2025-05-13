@@ -29,7 +29,7 @@ from networks.net_factory import net_factory
 from utils import losses, metrics, ramps
 from val import test_single_volume
 
-from configs.config_supervised_test import args
+from configs.config_supervised import args
 
 
 def get_current_consistency_weight(epoch):
