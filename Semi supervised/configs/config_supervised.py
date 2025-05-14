@@ -23,13 +23,13 @@ parser.add_argument('--model', type=str,
 
 parser.add_argument('--max_iterations', type=int,
                     default=30000, help='maximum epoch number to train')
-parser.add_argument('--epoch_num', type=int, default=50,
+parser.add_argument('--epoch_num', type=int, default=100,
                     help='epochs')
-parser.add_argument('--batch_size', type=int, default=32,
+parser.add_argument('--batch_size', type=int, default=16,
                     help='batch_size per gpu')
 parser.add_argument('--deterministic', type=int,  default=1,
                     help='whether use deterministic training')
-parser.add_argument('--base_lr', type=float,  default=0.01,
+parser.add_argument('--base_lr', type=float,  default=0.001,
                     help='segmentation network learning rate')
 parser.add_argument('--patch_size', type=list,  default=[256, 256],
                     help='patch size of network input')

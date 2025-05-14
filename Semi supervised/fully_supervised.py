@@ -94,6 +94,10 @@ def train(args, snapshot_path):
     for epoch_num in range(max_epoch):
 
         tbar = tqdm(trainloader, desc='epoch {}'.format(epoch_num))
+        tot_loss = 0
+        tot_ce_loss = 0
+        tot_dice_loss = 0
+
         for i_batch, sampled_batch in enumerate(tbar):
             volume_batch, label_batch = sampled_batch['image'], sampled_batch['label'].squeeze(1)
             volume_batch, label_batch = volume_batch.cuda(), label_batch.cuda()
@@ -102,18 +106,22 @@ def train(args, snapshot_path):
 
             if isinstance(outputs, tuple):
                 outputs = outputs[0]
-            # if args.model == 'Crackformer':
-            #     loss_ce = bce_loss(outputs, label_batch)
-            # 原始版本模型适用于多分类
+
             outputs_soft = torch.softmax(outputs, dim=1)
             loss_ce = ce_loss(outputs, label_batch.long())
 
             loss_dice = dice_loss(
                 outputs_soft, label_batch.unsqueeze(1))
+
+            tot_dice_loss += loss_dice.item()
+            tot_ce_loss += loss_ce.item()
+
             supervised_loss = 0.5 * (loss_dice + loss_ce)
 
 
             loss = supervised_loss
+            tot_loss += loss.item()
+
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -162,6 +170,7 @@ def train(args, snapshot_path):
                 performance = np.mean(metric_list, axis=0)[0]
 
                 mean_hd95 = np.mean(metric_list, axis=0)[1]
+                print (performance, iter_num)
                 writer.add_scalar('info/val_mean_dice', performance, iter_num)
                 writer.add_scalar('info/val_mean_hd95', mean_hd95, iter_num)
 
@@ -170,10 +179,10 @@ def train(args, snapshot_path):
                     save_mode_path = os.path.join(snapshot_path,
                                                   'iter_{}_dice_{}.pth'.format(
                                                       iter_num, round(best_performance, 4)))
-                    save_best = os.path.join(snapshot_path,
-                                             '{}_best_model.pth'.format(args.model))
+                    # save_best = os.path.join(snapshot_path,
+                    #                          '{}_best_model.pth'.format(args.model))
                     torch.save(model.state_dict(), save_mode_path)
-                    torch.save(model.state_dict(), save_best)
+                    # torch.save(model.state_dict(), save_best)
 
                 logger.info(
                     'iteration %d : mean_dice : %f mean_hd95 : %f' % (iter_num, performance, mean_hd95))
@@ -182,6 +191,8 @@ def train(args, snapshot_path):
 
             if iter_num >= max_iterations:
                 break
+
+        logging.warning(' ep %d : loss : %f, loss_ce: %f, loss_dice: %f' %(epoch_num, tot_loss/len(trainloader), tot_ce_loss/len(trainloader), tot_dice_loss/len(trainloader)))
 
         if epoch_num !=0 and epoch_num % 10 == 0:
             save_mode_path = os.path.join(
