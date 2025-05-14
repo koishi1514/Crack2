@@ -85,7 +85,7 @@ def StrongAugment(sample):
 def preprocess(dir):
     jpg_files = [file for file in os.listdir(dir) if file.endswith('.jpg')]
     png_files = [file for file in os.listdir(dir) if file.endswith('.png')]
-    return jpg_files, png_files
+    return sorted(jpg_files), sorted(png_files)
 
 
 
@@ -198,10 +198,10 @@ class BaseDataSets(Dataset):
 
         # image1 = transforms.ToPILImage()(image)
         # mask1 = transforms.ToPILImage()(mask)
-        # image1.save(os.path.join(out_path, image_path))
-        # mask1.save(os.path.join(out_path, mask_path))
+        # # image1.save(os.path.join(out_path, image_path))
+        # # mask1.save(os.path.join(out_path, mask_path))
         # print(2)
-
+        #
         # fig, axes = plt.subplots(2, 2, figsize=(12, 6))
         # axes[0][0].imshow(image1)
         # axes[0][0].axis('off')
