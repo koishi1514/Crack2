@@ -170,7 +170,7 @@ def train(args, snapshot_path):
                 performance = np.mean(metric_list, axis=0)[0]
 
                 mean_hd95 = np.mean(metric_list, axis=0)[1]
-                print (performance, iter_num)
+                # print (performance, iter_num)
                 writer.add_scalar('info/val_mean_dice', performance, iter_num)
                 writer.add_scalar('info/val_mean_hd95', mean_hd95, iter_num)
 
@@ -192,7 +192,7 @@ def train(args, snapshot_path):
             if iter_num >= max_iterations:
                 break
 
-        logging.warning(' ep %d : loss : %f, loss_ce: %f, loss_dice: %f' %(epoch_num, tot_loss/len(trainloader), tot_ce_loss/len(trainloader), tot_dice_loss/len(trainloader)))
+        # logging.warning(' ep %d : loss : %f, loss_ce: %f, loss_dice: %f' %(epoch_num, tot_loss/len(trainloader), tot_ce_loss/len(trainloader), tot_dice_loss/len(trainloader)))
 
         if epoch_num !=0 and epoch_num % 10 == 0:
             save_mode_path = os.path.join(
@@ -200,7 +200,7 @@ def train(args, snapshot_path):
             torch.save(model.state_dict(), save_mode_path)
             logger.info("save output to {}".format(save_mode_path))
 
-    print (iter_num)
+    # print (iter_num)
     writer.close()
     return "Training Finished!"
 
