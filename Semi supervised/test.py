@@ -11,6 +11,7 @@ import torch
 from medpy import metric
 from tqdm import tqdm
 import logging
+from utils import metrics
 
 # from networks.efficientunet import UNet
 from networks.net_factory import net_factory
@@ -61,17 +62,11 @@ def calculate_metric_percase(pred, gt):
 
 
 def test_single_volume(case, net, test_save_path, args):
-    # h5f = h5py.File(FLAGS.root_path + "/data/{}.h5".format(case), 'r')
-    # image = h5f['image'][:]
-    # label = h5f['label'][:]
-    # image, label = case['image'].unsqueeze(0).cuda(), case['label'].cuda()
-    # label = label.squeeze(0).cpu().detach().numpy()
+
 
     image = case['image'].cuda()
     label = case['label'].cpu().detach().numpy()
     name = case['name'][0]
-
-    # prediction = np.zeros_like(label)
 
     net.eval()
     test_out = net(image)
@@ -89,8 +84,10 @@ def test_single_volume(case, net, test_save_path, args):
 
     prediction = prediction.squeeze()
     label = label.squeeze()
+    # print (np.unique(prediction),np.unique(label))
 
-    first_metric = calculate_metric_percase(prediction == 1, label == 1)
+    first_metric = metrics.calculate_metric_percase(prediction, label)
+
     # second_metric = calculate_metric_percase(prediction == 2, label == 2)
     # third_metric = calculate_metric_percase(prediction == 3, label == 3)
 

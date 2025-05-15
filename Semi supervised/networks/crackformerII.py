@@ -297,7 +297,7 @@ class Up(nn.Module):
 
 class crackformer(nn.Module):
 
-    def __init__(self, in_channels, final_hidden_dims=64, num_classes=2):
+    def __init__(self, in_channels, final_hidden_dims=64, num_classes=1):
         super(crackformer, self).__init__()
 
         self.in_channels = in_channels
