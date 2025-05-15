@@ -17,13 +17,13 @@ parser.add_argument('--data_path', type=str,
 parser.add_argument('--dataset', type=str,
                     default=dataset, help='Name of Dataset')
 parser.add_argument('--exp', type=str,
-                    default='test', help='experiment_name')
+                    default='test_1class', help='experiment_name')
 parser.add_argument('--model', type=str,
                     default='crackformer', help='model_name')
 
 parser.add_argument('--max_iterations', type=int,
                     default=30000, help='maximum epoch number to train')
-parser.add_argument('--epoch_num', type=int, default=50,
+parser.add_argument('--epoch_num', type=int, default=10,
                     help='epochs')
 parser.add_argument('--batch_size', type=int, default=4,
                     help='batch_size per gpu')
@@ -34,7 +34,7 @@ parser.add_argument('--base_lr', type=float,  default=0.001,
 parser.add_argument('--patch_size', type=list,  default=[256, 256],
                     help='patch size of network input')
 parser.add_argument('--seed', type=int,  default=1337, help='random seed')
-parser.add_argument('--num_classes', type=int,  default=2,
+parser.add_argument('--num_classes', type=int,  default=1,
                     help='output channel of network')
 
 

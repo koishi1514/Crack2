@@ -5,6 +5,9 @@ import random
 import shutil
 import sys
 import time
+
+from torch.cuda import device
+
 import json
 
 import numpy as np
@@ -29,7 +32,7 @@ from networks.net_factory import net_factory
 from utils import losses, metrics, ramps
 from val import test_single_volume
 
-from configs.config_supervised import args
+from configs.config_supervised_test import args
 
 
 def get_current_consistency_weight(epoch):
@@ -41,6 +44,7 @@ def train(args, snapshot_path):
     num_classes = args.num_classes
     batch_size = args.batch_size
     max_iterations = args.max_iterations
+    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     def create_model(ema=False):
         # Network definition
@@ -52,8 +56,8 @@ def train(args, snapshot_path):
         return model
 
     model = create_model()
+    model = model.cpu()
     # crackformer 输出一个元组，末尾的元素是最终分割结果，其余的是每一层的分割图
-
     def worker_init_fn(worker_id):
         random.seed(args.seed + worker_id)
 
@@ -67,7 +71,7 @@ def train(args, snapshot_path):
     db_train = BaseDataSets(base_dir=args.data_path, split="train", transform="weak")
     db_val = BaseDataSets(base_dir=args.data_path, split="val", transform=None)
 
-    trainloader = DataLoader(db_train, batch_size = args.batch_size, shuffle=True,
+    trainloader = DataLoader(db_train, batch_size = args.batch_size, shuffle=False,
                              num_workers=0, pin_memory=True, worker_init_fn=worker_init_fn, drop_last=True)
     valloader = DataLoader(db_val, batch_size=1, shuffle=False, num_workers=0)
 
@@ -100,23 +104,23 @@ def train(args, snapshot_path):
 
         for i_batch, sampled_batch in enumerate(tbar):
             volume_batch, label_batch = sampled_batch['image'], sampled_batch['label'].squeeze(1)
-            volume_batch, label_batch = volume_batch.cuda(), label_batch.cuda()
+            # volume_batch, label_batch = volume_batch.cuda(), label_batch.cuda()
 
             outputs = model(volume_batch)
 
             if isinstance(outputs, tuple):
                 outputs = outputs[0]
 
-            outputs_soft = torch.softmax(outputs, dim=1)
-            loss_ce = ce_loss(outputs, label_batch.long())
+            outputs_soft = torch.sigmoid(outputs)
+            loss_bce = bce_loss(outputs, label_batch.unsqueeze(1))
 
             loss_dice = dice_loss(
                 outputs_soft, label_batch.unsqueeze(1))
 
             tot_dice_loss += loss_dice.item()
-            tot_ce_loss += loss_ce.item()
+            tot_ce_loss += loss_bce.item()
 
-            supervised_loss = 0.5 * (loss_dice + loss_ce)
+            supervised_loss = 0.5 * (loss_dice + loss_bce)
 
 
             loss = supervised_loss
@@ -133,7 +137,7 @@ def train(args, snapshot_path):
             iter_num = iter_num + 1
             writer.add_scalar('info/lr', lr_, iter_num)
             writer.add_scalar('info/total_loss', loss, iter_num)
-            writer.add_scalar('info/loss_ce', loss_ce, iter_num)
+            writer.add_scalar('info/loss_ce', loss_bce, iter_num)
             writer.add_scalar('info/loss_dice', loss_dice, iter_num)
 
             # logging.info(
@@ -161,23 +165,19 @@ def train(args, snapshot_path):
                         sampled_batch["image"], sampled_batch["label"], model, classes=num_classes)
                     metric_list += np.array(metric_i)
                 metric_list = metric_list / len(db_val)
-                for class_i in range(num_classes-1):
-                    writer.add_scalar('info/val_{}_dice'.format(class_i+1),
-                                      metric_list[class_i, 0], iter_num)
-                    writer.add_scalar('info/val_{}_hd95'.format(class_i+1),
-                                      metric_list[class_i, 1], iter_num)
 
-                performance = np.mean(metric_list, axis=0)[0]
 
-                mean_hd95 = np.mean(metric_list, axis=0)[1]
+                val_dice = np.mean(metric_list, axis=0)[0]
+                val_mIoU = np.mean(metric_list, axis=0)[1]
+
                 # print (performance, iter_num)
-                writer.add_scalar('info/val_mean_dice', performance, iter_num)
-                writer.add_scalar('info/val_mean_hd95', mean_hd95, iter_num)
+                writer.add_scalar('info/val_mean_dice', val_dice, iter_num)
+                writer.add_scalar('info/val_mean_hd95', val_mIoU, iter_num)
 
-                if performance > best_performance:
-                    best_performance = performance
+                if val_mIoU > best_performance:
+                    best_performance = val_mIoU
                     save_mode_path = os.path.join(snapshot_path,
-                                                  'iter_{}_dice_{}.pth'.format(
+                                                  'best_iter_{}_mIoU_{}.pth'.format(
                                                       iter_num, round(best_performance, 4)))
                     # save_best = os.path.join(snapshot_path,
                     #                          '{}_best_model.pth'.format(args.model))
@@ -185,7 +185,7 @@ def train(args, snapshot_path):
                     # torch.save(model.state_dict(), save_best)
 
                 logger.info(
-                    'iteration %d : mean_dice : %f mean_hd95 : %f' % (iter_num, performance, mean_hd95))
+                    'epoch %d, iteration %d : mean_dice : %f, mean_mIoU : %f' % (epoch_num, iter_num, val_dice, val_mIoU))
                 model.train()
 
 
