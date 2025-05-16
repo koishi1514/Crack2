@@ -24,8 +24,10 @@ def cal_dice(prediction, label, num=2):
     return total_dice
 
 def calculate_metric_percase_val(pred, gt):
-    pred[pred > 0.5] = 1
-    gt[gt > 0.5] = 1
+    # pred[pred > 0.5] = 1
+    # gt[gt > 0.5] = 1
+
+    pred = (pred > 0.5).astype(np.float64)
 
     if pred.sum() <= 0:
         return 0, 0, 0, 0, 0
@@ -35,8 +37,10 @@ def calculate_metric_percase_val(pred, gt):
     return dc, mIoU, p, r, f1  #jc, hd, asd
 
 def calculate_metric_percase(pred, gt):
-    pred[pred > 0] = 1
-    gt[gt > 0] = 1
+    # pred[pred > 0] = 1
+    # gt[gt > 0] = 1
+
+    pred = (pred > 0.5).astype(np.float64)
 
     if pred.sum() <= 0:
         return 0, 0, 0, 0, 0
@@ -91,16 +95,32 @@ def cal_mIoU_metrics(pred, gt):
     TN = np.sum((pred == 0) & (gt == 0))
     FP = np.sum((pred == 1) & (gt == 0))
     FN = np.sum((pred == 0) & (gt == 1))
-    if (FN + FP + TP) <= 0:
+
+    # mIoU
+    if (FN + FP + TP) <= 0 or (FN + FP + TN) <= 0:
         mIoU = 0
     else:
         iou_1 = TP / (FN + FP + TP)
         iou_0 = TN / (FN + FP + TN)
         mIoU = (iou_1 + iou_0)/2
 
-    precision = TP / (TP + FP)
-    recall = TP / (TP + FN)
-    f1 = 2 * precision * recall / (precision + recall)
+    # pre
+    if (TP + FP) <= 0:
+        precision = 0
+    else:
+        precision = TP / (TP + FP)
+
+    # recall
+    if (TP + FN) <= 0:
+        recall = 0
+    else:
+        recall = TP / (TP + FN)
+
+    # f1
+    if precision + recall == 0:
+        f1 = 0
+    else:
+        f1 = 2 * precision * recall / (precision + recall)
 
     return mIoU, precision, recall, f1
 

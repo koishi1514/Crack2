@@ -32,7 +32,7 @@ from networks.net_factory import net_factory
 from utils import losses, metrics, ramps
 from val import test_single_volume
 
-from configs.config_supervised_test import args
+from configs.config_supervised import args
 
 
 def get_current_consistency_weight(epoch):
@@ -164,7 +164,10 @@ def train(args, snapshot_path):
                     metric_i = test_single_volume(
                         sampled_batch["image"], sampled_batch["label"], model, classes=num_classes)
                     metric_list += np.array(metric_i)
+
                 metric_list = metric_list / len(db_val)
+
+                # dc, mIoU, p, r, f1
 
 
                 val_dice = np.mean(metric_list, axis=0)[0]
@@ -185,7 +188,7 @@ def train(args, snapshot_path):
                     # torch.save(model.state_dict(), save_best)
 
                 logger.info(
-                    'epoch %d, iteration %d : mean_dice : %f, mean_mIoU : %f' % (epoch_num, iter_num, val_dice, val_mIoU))
+                    'epoch %d, iteration %d, loss : %f, mean_dice : %f, mean_mIoU : %f' % (epoch_num, iter_num, tot_loss/len(trainloader), val_dice, val_mIoU))
                 model.train()
 
 

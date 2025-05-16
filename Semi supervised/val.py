@@ -6,8 +6,8 @@ from scipy.ndimage import zoom
 from utils.metrics import calculate_metric_percase_val
 
 def calculate_metric_percase(pred, gt):
-    pred[pred > 0.5] = 1
-    gt[gt > 0.5] = 1
+    pred[pred > 0] = 1
+    gt[gt > 0] = 1
     if pred.sum() > 0:
         dice = metric.binary.dc(pred, gt)
         hd95 = metric.binary.hd95(pred, gt)

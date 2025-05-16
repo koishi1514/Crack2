@@ -15,7 +15,7 @@
       <excludeFolder url="file://$MODULE_DIR$/dataset/pavement crack datasets" />
       <excludeFolder url="file://$MODULE_DIR$/output/test" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.10" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.12 virtualenv at ~/Crack_seg_lzc/venv" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PyDocumentationSettings">
