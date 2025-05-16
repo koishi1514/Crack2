@@ -1,8 +1,6 @@
 import  argparse
 import os
 
-from configs.config_for_camus_dataset_test import root_path
-
 dataset = 'CRACK500'
 # CRACK500, CFD
 data_path = os.path.join('../dataset', dataset)
