@@ -20,8 +20,6 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import math
 
-from configs.config_supervised_test import data_path
-
 def blur(img, p=0.5):
     if random.random() < p:
         sigma = np.random.uniform(0.1, 2.0)
