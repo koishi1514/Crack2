@@ -141,7 +141,8 @@ def cal_mIoU_metric_all(pred_list, gt_list, thresh_step=0.01):
         ave_iou = np.mean(np.array(iou_list))
         final_iou.append(ave_iou)
     mIoU = np.max(np.array(final_iou))
-    return mIoU
+    max_threshold = (np.argmax(np.array(final_iou)) + 1) * thresh_step
+    return mIoU, max_threshold
 
 
 def cal_ODS_metric(pred_list, gt_list, thresh_step=0.01):

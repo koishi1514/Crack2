@@ -19,7 +19,8 @@ parser.add_argument('--dataset', type=str,
 parser.add_argument('--exp', type=str,
                     default='test1', help='experiment_name')
 parser.add_argument('--model', type=str,
-                    default='nnUNet', help='model_name')
+                    default='unet', help='model_name')
+# nnUNet 要如此大写
 
 parser.add_argument('--max_iterations', type=int,
                     default=30000, help='maximum epoch number to train')

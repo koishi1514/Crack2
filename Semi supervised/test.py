@@ -20,21 +20,31 @@ import cv2
 
 from configs.config_supervised import args
 
-def draw_sem_seg_by_cv2_sum(image, gt_sem_seg, pred_sem_seg, palette):
+def draw_sem_seg_by_cv2_sum(image, gt_sem_seg, pred_sem_seg, palette, threshold=0.5):
     '''
         image: [3,h,w] numpy.ndarray
         gt_sem_seg: [h,w] numpy.ndarray
         pred_sem_seg: [h,w] numpy.ndarray
         palette: [bg, gt, pred, overlap] numpy.ndarray
     '''
+    image = (image * 255 if np.max(image) <= 1 else image).astype(np.uint8)
+    pred_sem_seg = pred_sem_seg > threshold
+    # pred_sem_seg = (pred_sem_seg > threshold if np.max(pred_sem_seg) <= 1 else pred_sem_seg).astype(np.uint8)
+    # gt_sem_seg = (gt_sem_seg * 255 if np.max(gt_sem_seg) <= 1 else gt_sem_seg).astype(np.uint8)
+
     gt_sem_seg = gt_sem_seg.astype(np.uint8)
     pred_sem_seg = pred_sem_seg.astype(np.uint8)
-    a = np.unique(gt_sem_seg)
-    b = np.unique(pred_sem_seg)
+    # a = np.unique(gt_sem_seg)
+    # b = np.unique(pred_sem_seg)
     mask = 2 * pred_sem_seg + gt_sem_seg
     mask = mask.squeeze()
 
     ids = np.unique(mask)
+    # palette = [[255, 255, 255],[37, 143, 36], [178, 48, 0], [178, 151, 0]]
+    # white, green, red, yellow
+    # 背景（无色）, gt（绿色）, pred（红色）,重叠部分（黄色）
+
+    # idx
     color_mask = np.zeros_like(image)
     for idx in ids:
         color_mask[0][mask == idx] = palette[idx][0]
@@ -76,8 +86,7 @@ def test_single_volume(case, net, test_save_path, args):
         out_soft = torch.sigmoid(out)
         # out_soft = out
 
-        out = out_soft.cpu().detach().numpy()
-        prediction = out
+        prediction = out_soft.cpu().detach().numpy()
 
     prediction = prediction.squeeze()
     label = label.squeeze()
@@ -92,16 +101,17 @@ def test_single_volume(case, net, test_save_path, args):
     # second_metric = calculate_metric_percase(prediction == 2, label == 2)
     # third_metric = calculate_metric_percase(prediction == 3, label == 3)
 
-    image = image.squeeze(0).cpu().detach().numpy()
+    image_out = image.squeeze(0).cpu().detach().numpy()
 
+    # opencv need input numpy array pixels are 0-255 and 3 channels
     # image =  np.concatenate([image] * 3, axis=0)
 
-    # palette = [[255, 255, 255],[37, 143, 36], [178, 48, 0], [178, 151, 0]]
-    # #
-    # # image = draw_sem_seg_by_cv2_sum(image, label, prediction, palette)
-    # image = cv2.cvtColor(image.transpose(1,2,0), cv2.COLOR_RGB2BGR)
-    # out_dir =  os.path.join(test_save_path, name[:-4]+'.png')
-    # cv2.imwrite(out_dir, image)
+    palette = [[255, 255, 255],[37, 143, 36], [178, 48, 0], [178, 151, 0]]
+
+    draw_output = draw_sem_seg_by_cv2_sum(image_out, label, prediction, palette)
+    draw_output = cv2.cvtColor(draw_output.transpose(1,2,0), cv2.COLOR_RGB2BGR)
+    out_dir =  os.path.join(test_save_path, name[:-4]+'.png')
+    cv2.imwrite(out_dir, draw_output)
 
 
     return metric_single_img, single_pred, single_label
@@ -167,7 +177,7 @@ def Inference(args):
     final_accuracy_all = metrics.cal_prf_metrics_all(pred_list, label_list)
     final_accuracy_all = np.array(final_accuracy_all)
     Precision_list, Recall_list, F_list = final_accuracy_all[:, 1], final_accuracy_all[:,2], final_accuracy_all[:, 3]
-    mIoU_all = metrics.cal_mIoU_metric_all(pred_list, label_list)
+    mIoU_all, max_threshold_indice = metrics.cal_mIoU_metric_all(pred_list, label_list)
     ois = metrics.cal_OIS_metric(pred_list, label_list)
     ods = metrics.cal_ODS_metric(pred_list, label_list)
     precision = np.max(Precision_list)
