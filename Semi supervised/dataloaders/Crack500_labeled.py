@@ -191,8 +191,8 @@ class BaseDataSets(Dataset):
         #     image = torch.transpose(image, 1, 2)
         #     mask = torch.transpose(mask, 1, 2)
 
-        image1 = np.array(image)
-        mask1 = np.array(mask)
+        # image1 = np.array(image)
+        # mask1 = np.array(mask)
         image, mask = self.transform(image, mask)
 
 

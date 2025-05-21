@@ -48,7 +48,7 @@ def train(args, snapshot_path):
 
     def create_model(ema=False):
         # Network definition
-        model = net_factory(net_type=args.model, in_chns=1,
+        model = net_factory(net_type=args.model, in_chns=3,
                             class_num=num_classes)
         if ema:
             for param in model.parameters():
@@ -182,10 +182,11 @@ def train(args, snapshot_path):
                     save_mode_path = os.path.join(snapshot_path,
                                                   'best_iter_{}_mIoU_{}.pth'.format(
                                                       iter_num, round(best_performance, 4)))
-                    # save_best = os.path.join(snapshot_path,
-                    #                          '{}_best_model.pth'.format(args.model))
+                    save_best = os.path.join(snapshot_path,
+                                             '{}_best_model.pth'.format(args.model))
                     torch.save(model.state_dict(), save_mode_path)
-                    # torch.save(model.state_dict(), save_best)
+                    torch.save(model.state_dict(), save_best)
+                    logger.info("best found at epoch {}".format(epoch_num))
 
                 logger.info(
                     'epoch %d, iteration %d, loss : %f, mean_dice : %f, mean_mIoU : %f' % (epoch_num, iter_num, tot_loss/len(trainloader), val_dice, val_mIoU))

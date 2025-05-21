@@ -2,8 +2,6 @@ import argparse
 import os
 import shutil
 
-from Demos.RegCreateKeyTransacted import trans
-
 import json
 
 import numpy as np
@@ -20,7 +18,7 @@ from torch.utils.data.dataloader import DataLoader
 from PIL import Image
 import cv2
 
-from configs.config_supervised_test import args
+from configs.config_supervised import args
 
 def draw_sem_seg_by_cv2_sum(image, gt_sem_seg, pred_sem_seg, palette):
     '''
@@ -63,72 +61,52 @@ def calculate_metric_percase(pred, gt):
 
 def test_single_volume(case, net, test_save_path, args):
 
-
+    ts = 0.01
     image = case['image'].cuda()
     label = case['label'].cpu().detach().numpy()
     name = case['name'][0]
 
     net.eval()
-    test_out = net(image)
 
     with torch.no_grad():
         out = net(image)
         if isinstance(out, tuple):
             out = out[0]
 
-        out_soft = torch.softmax(out, dim=1)
-        out = torch.argmax(out_soft, dim=1)
+        out_soft = torch.sigmoid(out)
+        # out_soft = out
 
-        out = out.cpu().detach().numpy()
+        out = out_soft.cpu().detach().numpy()
         prediction = out
 
     prediction = prediction.squeeze()
     label = label.squeeze()
     # print (np.unique(prediction),np.unique(label))
 
-    first_metric = metrics.calculate_metric_percase(prediction, label)
+    # metrics per image
+    metric_single_img = metrics.calculate_metric_percase(prediction, label, ts)
+    single_pred = prediction
+    single_label = label
+
 
     # second_metric = calculate_metric_percase(prediction == 2, label == 2)
     # third_metric = calculate_metric_percase(prediction == 3, label == 3)
 
     image = image.squeeze(0).cpu().detach().numpy()
+
     # image =  np.concatenate([image] * 3, axis=0)
 
-    palette = [[255, 255, 255],[37, 143, 36], [178, 48, 0], [178, 151, 0]]
+    # palette = [[255, 255, 255],[37, 143, 36], [178, 48, 0], [178, 151, 0]]
+    # #
+    # # image = draw_sem_seg_by_cv2_sum(image, label, prediction, palette)
+    # image = cv2.cvtColor(image.transpose(1,2,0), cv2.COLOR_RGB2BGR)
+    # out_dir =  os.path.join(test_save_path, name[:-4]+'.png')
+    # cv2.imwrite(out_dir, image)
 
-    image = draw_sem_seg_by_cv2_sum(image, label, prediction, palette)
-    image = cv2.cvtColor(image.transpose(1,2,0), cv2.COLOR_RGB2BGR)
-    out_dir =  os.path.join(test_save_path, name+'.png')
-    cv2.imwrite(out_dir, image)
 
-    # img_itk = sitk.GetImageFromArray(image.astype(np.float32))
-    # img_itk.SetSpacing((1, 1, 10))
-    # prd_itk = sitk.GetImageFromArray(prediction.astype(np.float32))
-    # prd_itk.SetSpacing((1, 1, 10))
-    # lab_itk = sitk.GetImageFromArray(label.astype(np.float32))
-    # lab_itk.SetSpacing((1, 1, 10))
-    # sitk.WriteImage(prd_itk, test_save_path + name + "_pred.nii.gz")
-    # sitk.WriteImage(img_itk, test_save_path + name + "_img.nii.gz")
-    # sitk.WriteImage(lab_itk, test_save_path + name + "_gt.nii.gz")
-    return first_metric
-
+    return metric_single_img, single_pred, single_label
 
 def Inference(args):
-    # with open(FLAGS.root_path + '/test.list', 'r') as f:
-    #     image_list = f.readlines()
-    # image_list = sorted([item.replace('\n', '').split(".")[0]
-    #                      for item in image_list])
-
-    # name_list_path = os.path.join(FLAGS.root_path, "name.json")
-    # frame_split_path = os.path.join(FLAGS.root_path, "frame_split_{}.json".format(FLAGS.labeled_num))
-    # print(FLAGS.labeled_num)
-    # with open(name_list_path, 'r') as fn:
-    #     name_dict = json.load(fn)['file_name']
-    # with open(frame_split_path, 'r') as ff:
-    #     split_json = json.load(ff)
-    #
-    # test_idx = split_json['test_idx']
-    # image_list = [name_dict[i] for i in test_idx]
 
     # only for fully supervised output
 
@@ -149,10 +127,11 @@ def Inference(args):
     if os.path.exists(test_save_path):
         shutil.rmtree(test_save_path)
     os.makedirs(test_save_path)
-    net = net_factory(net_type=args.model, in_chns=1,
+    net = net_factory(net_type=args.model, in_chns=3,
                       class_num=args.num_classes)
     save_mode_path = os.path.join(
         snapshot_path, '{}_best_model.pth'.format(args.model))
+
     net.load_state_dict(torch.load(save_mode_path))
     print("init weight from {}".format(save_mode_path))
     net.eval()
@@ -175,24 +154,52 @@ def Inference(args):
     pbar = tqdm(testloader)
     print (len(testloader))
 
-
+    pred_list = []
+    label_list = []
 
     for i, data in enumerate(pbar):
-
-        first_metric = test_single_volume(data, net, test_save_path, args)
-
+        first_metric, pred, lable = test_single_volume(data, net, test_save_path, args)
         first_total += np.asarray(first_metric)
+        pred_list.append(pred)
+        label_list.append(lable)
 
-
-    # for case in tqdm(image_list):
-    #     first_metric = test_single_volume(
-    #         case, net, test_save_path, FLAGS)
-    #     first_total += np.asarray(first_metric)
-    #     second_total += np.asarray(second_metric)
-    #     third_total += np.asarray(third_metric)
     avg_metric = first_total / test_num
+    final_accuracy_all = metrics.cal_prf_metrics_all(pred_list, label_list)
+    final_accuracy_all = np.array(final_accuracy_all)
+    Precision_list, Recall_list, F_list = final_accuracy_all[:, 1], final_accuracy_all[:,2], final_accuracy_all[:, 3]
+    mIoU_all = metrics.cal_mIoU_metric_all(pred_list, label_list)
+    ois = metrics.cal_OIS_metric(pred_list, label_list)
+    ods = metrics.cal_ODS_metric(pred_list, label_list)
+    precision = np.max(Precision_list)
+    recall = np.max(Recall_list)
+    f1 = np.max(F_list)
 
-    logger.info("Dice: {}, HD95: {}, ASD: {}".format(avg_metric[0], avg_metric[1], avg_metric[2]) )
+    # list: ( num * 100 * [thresh, dc, mIoU, TP, TN, FP, FN] )
+    # all_img_metric = np.array(all_img_list)
+    #
+    # all_dc = all_img_metric[..., 1]
+    # all_mIoU = all_img_metric[..., 2]
+    # all_tp = all_img_metric[..., 3]
+    # all_fp = all_img_metric[..., 5]
+    # all_fn = all_img_metric[..., 6]
+    #
+    # sum_tp = np.sum(all_tp, axis=0)
+    # sum_fp = np.sum(all_fp, axis=0)
+    # sum_fn = np.sum(all_fn, axis=0)
+    #
+    # final_p = 1.0 if sum_tp==0 and sum_fp==0 else sum_tp / (sum_tp + sum_fp)
+    # final_r = sum_tp / (sum_tp + sum_fn)
+    # final_f1 = 2 * final_p * final_r / (final_p + final_r)
+    #
+    # img_ave_mIoU = np.mean(all_mIoU, axis = 0)
+    # final_mIoU = np.max(img_ave_mIoU)
+
+
+    ois1 = avg_metric[4]
+
+    logger.info("metric overall dataset: mIoU: {}, OIS: {}, ODS: {}, F1: {}".format(mIoU_all, ois, ods, f1) )
+    logger.info("metric avg image:  Dice: {}, mIoU: {}, precision: {}, recall: {}, F1: {}"
+                .format(avg_metric[0], avg_metric[1], avg_metric[2], avg_metric[3], avg_metric[4]) )
     return avg_metric
 
 
