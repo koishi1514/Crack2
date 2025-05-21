@@ -1,6 +1,7 @@
 import argparse
 import os
 import shutil
+import importlib
 
 import json
 
@@ -13,12 +14,23 @@ from utils import metrics
 
 # from networks.efficientunet import UNet
 from networks.net_factory import net_factory
-from dataloaders.Crack500_labeled import BaseDataSets
+# from dataloaders.CRACK500_labeled import BaseDataSets
 from torch.utils.data.dataloader import DataLoader
 from PIL import Image
 import cv2
 
 from configs.config_supervised import args
+
+datasets = ("CRACK500", "DeepCrack")
+
+try:
+    import_dataset_name = "dataloaders."+args.dataset+"_labeled"
+    dataset_py = importlib.import_module(import_dataset_name)
+    BaseDataSets = getattr(dataset_py, "BaseDataSets")
+
+except ImportError:
+    print(114514)
+
 
 def draw_sem_seg_by_cv2_sum(image, gt_sem_seg, pred_sem_seg, palette, threshold=0.5):
     '''

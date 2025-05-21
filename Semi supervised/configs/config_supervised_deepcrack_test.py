@@ -1,8 +1,8 @@
 import  argparse
 import os
 
-dataset = 'CRACK500'
-# CRACK500, CFD
+dataset = 'DeepCrack'
+# CRACK500, CFD, DeepCrack
 data_path = os.path.join('../dataset', dataset)
 root_path = '..'
 

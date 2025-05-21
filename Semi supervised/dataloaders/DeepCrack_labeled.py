@@ -1,16 +1,13 @@
 import os
-from cProfile import label
 
 import cv2
 import torch
 import random
 import numpy as np
-from glob import glob
 
 from torch.utils.data import Dataset
 
 import torchvision.transforms.v2 as transforms
-import itertools
 from scipy import ndimage
 from torch.utils.data.sampler import Sampler
 # import augmentations
@@ -80,11 +77,10 @@ def StrongAugment(sample):
     sample = {"image": image, "label": label}
     return sample
 
-def preprocess(dir):
-    jpg_files = [file for file in os.listdir(dir) if file.endswith('.jpg')]
-    png_files = [file for file in os.listdir(dir) if file.endswith('.png')]
+def preprocess(img_dir, label_dir):
+    jpg_files = [file for file in os.listdir(img_dir) if file.endswith('.jpg')]
+    png_files = [file for file in os.listdir(label_dir) if file.endswith('.png')]
     return sorted(jpg_files), sorted(png_files)
-
 
 
 class BaseDataSets(Dataset):
@@ -117,8 +113,9 @@ class BaseDataSets(Dataset):
 
         # with open(self.split_json_path, 'r') as f1:
         #     self.split_json = json.load(f1) # number idx
-        self.data_dir = os.path.join(self._base_dir, self.split+'crop')
-        self.img_path_list, self.mask_path_list = preprocess(self.data_dir)
+        self.img_data_dir = os.path.join(self._base_dir, self.split+"_img")
+        self.label_dir = os.path.join(self._base_dir, self.split+"_lab")
+        self.img_path_list, self.mask_path_list = preprocess(self.img_data_dir, self.label_dir)
 
         if transform == 'weak':
             self.transform = transforms.Compose([
@@ -263,7 +260,7 @@ def worker_init_fn(worker_id):
 
 if __name__ == '__main__':
 
-    from configs.config_supervised_test import args
+    from config.config_supervised_test import args
     from torch.utils.data import DataLoader
 
     data_path = os.path.join('..',args.data_path)

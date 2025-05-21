@@ -50,7 +50,7 @@ if __name__ == '__main__':
 
     from configs.config_supervised_test import args
     from torch.utils.data import DataLoader
-    from dataloaders.Crack500_labeled import BaseDataSets
+    from dataloaders.CRACK500_labeled import BaseDataSets
     from networks.crackformerII import crackformer
 
     db_val = BaseDataSets(base_dir=args.data_path, split="val", transform=None)
