@@ -135,20 +135,22 @@ def Inference(args):
     snapshot_path = "../output/{}/{}".format(
         args.exp, args.model)
 
-    test_save_path = "../output/{}/{}_predictions".format(
-        args.exp, args.model)
+    test_save_path = "../output/{}/{}_predictions/{}".format(
+        args.exp, args.model, args.dataset)
+
+    if os.path.exists(test_save_path):
+        shutil.rmtree(test_save_path)
+    os.makedirs(test_save_path)
 
     logger = logging.getLogger("my_logger")
     logger.setLevel(logging.DEBUG)
-    file_handler = logging.FileHandler(os.path.join(snapshot_path , 'log.txt'))
+    file_handler = logging.FileHandler(os.path.join(test_save_path , 'test_log.txt'))
     file_handler.setLevel(logging.DEBUG)
     file_formatter = logging.Formatter('%(asctime)s - %(message)s')
     file_handler.setFormatter(file_formatter)
     logger.addHandler(file_handler)
 
-    if os.path.exists(test_save_path):
-        shutil.rmtree(test_save_path)
-    os.makedirs(test_save_path)
+
     net = net_factory(net_type=args.model, in_chns=3,
                       class_num=args.num_classes)
     save_mode_path = os.path.join(
@@ -222,6 +224,9 @@ def Inference(args):
     logger.info("metric overall dataset: mIoU: {}, OIS: {}, ODS: {}, F1: {}".format(mIoU_all, ois, ods, f1) )
     logger.info("metric avg image:  Dice: {}, mIoU: {}, precision: {}, recall: {}, F1: {}"
                 .format(avg_metric[0], avg_metric[1], avg_metric[2], avg_metric[3], avg_metric[4]) )
+    print("metric overall dataset: mIoU: {}, OIS: {}, ODS: {}, F1: {}".format(mIoU_all, ois, ods, f1))
+    print("metric avg image:  Dice: {}, mIoU: {}, precision: {}, recall: {}, F1: {}"
+          .format(avg_metric[0], avg_metric[1], avg_metric[2], avg_metric[3], avg_metric[4]) )
     return avg_metric
 
 
@@ -229,5 +234,4 @@ if __name__ == '__main__':
     # FLAGS = parser.parse_args()
     metric = Inference(args)
 
-    print(metric)
 
