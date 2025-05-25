@@ -33,7 +33,7 @@ from utils import losses, metrics, ramps
 from val import test_single_volume
 
 from configs.config_supervised import args
-
+from models.decoder import build
 
 def get_current_consistency_weight(epoch):
     # Consistency ramp-up from https://arxiv.org/abs/1610.02242
@@ -48,8 +48,9 @@ def train(args, snapshot_path):
 
     def create_model(ema=False):
         # Network definition
-        model = net_factory(net_type=args.model, in_chns=3,
-                            class_num=num_classes)
+        # model = net_factory(net_type=args.model, in_chns=3,
+        #                     class_num=num_classes)
+        model, _ = build(args)
         if ema:
             for param in model.parameters():
                 param.detach_()
