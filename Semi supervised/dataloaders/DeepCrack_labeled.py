@@ -113,10 +113,10 @@ class BaseDataSets(Dataset):
 
         # with open(self.split_json_path, 'r') as f1:
         #     self.split_json = json.load(f1) # number idx
-        self.img_data_dir = os.path.join(self._base_dir, "train"+"_img")
-        self.label_dir = os.path.join(self._base_dir, "train"+"_lab")
-        # self.img_data_dir = os.path.join(self._base_dir, self.split+"_img")
-        # self.label_dir = os.path.join(self._base_dir, self.split+"_lab")
+        # self.img_data_dir = os.path.join(self._base_dir, "train"+"_img")
+        # self.label_dir = os.path.join(self._base_dir, "train"+"_lab")
+        self.img_data_dir = os.path.join(self._base_dir, self.split+"_img")
+        self.label_dir = os.path.join(self._base_dir, self.split+"_lab")
         self.img_path_list, self.mask_path_list = preprocess(self.img_data_dir, self.label_dir)
 
         if transform == 'weak':

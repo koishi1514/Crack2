@@ -16,7 +16,7 @@ def calculate_metric_percase_val(pred, gt):
     pred = (pred > 0.5).astype(np.float64)
 
     if pred.sum() <= 0:
-        return 0, 0, 0, 0, 0
+        return [0, 0, 0, 0, 0]
 
     dc = metric.binary.dc(pred, gt)
     mIoU = cal_mIoU_metric(pred, gt)
@@ -25,7 +25,7 @@ def calculate_metric_percase_val(pred, gt):
     # hd = metric.binary.hd95(pred, gt)
     # asd = metric.binary.asd(pred, gt)
 
-    return dc, mIoU, p, r, f1  #jc, hd, asd
+    return [dc, mIoU, p, r, f1]  #jc, hd, asd
 
 def get_statistics(pred, gt):
     tp = np.sum((pred==1)&(gt==1))

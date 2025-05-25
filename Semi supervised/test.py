@@ -2,7 +2,7 @@ import argparse
 import os
 import shutil
 import importlib
-
+import csv
 import json
 
 import numpy as np
@@ -10,6 +10,9 @@ import torch
 from medpy import metric
 from tqdm import tqdm
 import logging
+
+from urllib3.filepost import writer
+
 from utils import metrics
 
 # from networks.efficientunet import UNet
@@ -105,7 +108,8 @@ def test_single_volume(case, net, test_save_path, args):
     # print (np.unique(prediction),np.unique(label))
 
     # metrics per image
-    metric_single_img = metrics.calculate_metric_percase(prediction, label, ts)
+    metric_single_img = metrics.calculate_metric_percase_val(prediction, label)
+    # [dc, mIoU, p, r, f1]
     single_pred = prediction
     single_label = label
 
@@ -138,13 +142,15 @@ def Inference(args):
     test_save_path = "../output/{}/{}_predictions/{}".format(
         args.exp, args.model, args.dataset)
 
+    csv_save_path = os.path.join(test_save_path, "output.csv")
+
     if os.path.exists(test_save_path):
         shutil.rmtree(test_save_path)
     os.makedirs(test_save_path)
 
     logger = logging.getLogger("my_logger")
     logger.setLevel(logging.DEBUG)
-    file_handler = logging.FileHandler(os.path.join(test_save_path , 'test_log.txt'))
+    file_handler = logging.FileHandler(os.path.join(snapshot_path ,'log.txt'))
     file_handler.setLevel(logging.DEBUG)
     file_formatter = logging.Formatter('%(asctime)s - %(message)s')
     file_handler.setFormatter(file_formatter)
@@ -180,12 +186,18 @@ def Inference(args):
 
     pred_list = []
     label_list = []
+    metric_per_img_list = []
+    metric_header = ["Name", "Dice", "mIoU", "Precision", "Recall", "F1 score"]
 
     for i, data in enumerate(pbar):
-        first_metric, pred, lable = test_single_volume(data, net, test_save_path, args)
+        first_metric, pred, label = test_single_volume(data, net, test_save_path, args)
+        # [dc, mIoU, p, r, f1]
         first_total += np.asarray(first_metric)
+        first_metric.insert(0, data['name'][0])
+
+        metric_per_img_list.append(first_metric)
         pred_list.append(pred)
-        label_list.append(lable)
+        label_list.append(label)
 
     avg_metric = first_total / test_num
     final_accuracy_all = metrics.cal_prf_metrics_all(pred_list, label_list)
@@ -197,27 +209,14 @@ def Inference(args):
     precision = np.max(Precision_list)
     recall = np.max(Recall_list)
     f1 = np.max(F_list)
+    print (max_threshold_indice)
 
-    # list: ( num * 100 * [thresh, dc, mIoU, TP, TN, FP, FN] )
-    # all_img_metric = np.array(all_img_list)
-    #
-    # all_dc = all_img_metric[..., 1]
-    # all_mIoU = all_img_metric[..., 2]
-    # all_tp = all_img_metric[..., 3]
-    # all_fp = all_img_metric[..., 5]
-    # all_fn = all_img_metric[..., 6]
-    #
-    # sum_tp = np.sum(all_tp, axis=0)
-    # sum_fp = np.sum(all_fp, axis=0)
-    # sum_fn = np.sum(all_fn, axis=0)
-    #
-    # final_p = 1.0 if sum_tp==0 and sum_fp==0 else sum_tp / (sum_tp + sum_fp)
-    # final_r = sum_tp / (sum_tp + sum_fn)
-    # final_f1 = 2 * final_p * final_r / (final_p + final_r)
-    #
-    # img_ave_mIoU = np.mean(all_mIoU, axis = 0)
-    # final_mIoU = np.max(img_ave_mIoU)
-
+    with open(csv_save_path, mode='w') as csv_file:
+        writer = csv.writer(csv_file)
+        writer.writerow(metric_header)
+        writer.writerows(metric_per_img_list)
+        writer.writerow([" ", "mIoU", "ois", "ods", "F1 score"])
+        writer.writerow(["overall_metrics", mIoU_all, ois, ods, f1])
 
     ois1 = avg_metric[4]
 
