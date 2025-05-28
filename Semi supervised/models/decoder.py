@@ -51,7 +51,7 @@ class bce_dice(nn.Module):
 
 def build(args):
     device = torch.device("cuda")
-    args.device = torch.device("cuda")
+    # args.device = torch.device("cuda")
 
     backbone = SAVSS(arch='Crack',
                      out_indices=(0, 1, 2, 3),

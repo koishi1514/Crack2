@@ -30,6 +30,8 @@ parser.add_argument('--deterministic', type=int,  default=1,
                     help='whether use deterministic training')
 parser.add_argument('--base_lr', type=float,  default=0.001,
                     help='segmentation network learning rate')
+parser.add_argument('--weight_decay', type=float,  default=0.0001,
+                    help='weight decay')
 parser.add_argument('--patch_size', type=list,  default=[256, 256],
                     help='patch size of network input')
 parser.add_argument('--seed', type=int,  default=1337, help='random seed')

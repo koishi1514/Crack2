@@ -5,6 +5,7 @@ import random
 import shutil
 import sys
 import time
+import importlib
 
 from torch.cuda import device
 
@@ -21,19 +22,27 @@ from torch.nn import BCEWithLogitsLoss
 from torch.nn.modules.loss import CrossEntropyLoss
 from torch.utils.data import DataLoader
 from torchvision import transforms
-from torchvision.utils import make_grid
 from tqdm import tqdm
 
 from dataloaders import utils
 
-from dataloaders.CRACK500_labeled import BaseDataSets
 
 from networks.net_factory import net_factory
 from utils import losses, metrics, ramps
 from val import test_single_volume
 
-from configs.config_supervised import args
-from models.decoder import build
+# from configs.config_supervised import args
+from configs.config_supervised_SCSegamba_for_Deepcrack_test import args
+
+datasets = ("CRACK500", "DeepCrack")
+
+try:
+    import_dataset_name = "dataloaders."+args.dataset+"_labeled"
+    dataset_py = importlib.import_module(import_dataset_name)
+    BaseDataSets = getattr(dataset_py, "BaseDataSets")
+
+except ImportError:
+    print(114514)
 
 def get_current_consistency_weight(epoch):
     # Consistency ramp-up from https://arxiv.org/abs/1610.02242
@@ -41,6 +50,7 @@ def get_current_consistency_weight(epoch):
 
 def train(args, snapshot_path):
     base_lr = args.base_lr
+    weight_decay = args.weight_decay
     num_classes = args.num_classes
     batch_size = args.batch_size
     max_iterations = args.max_iterations
@@ -48,9 +58,9 @@ def train(args, snapshot_path):
 
     def create_model(ema=False):
         # Network definition
-        # model = net_factory(net_type=args.model, in_chns=3,
-        #                     class_num=num_classes)
-        model, _ = build(args)
+        model = net_factory(net_type=args.model, in_chns=3,
+                            class_num=num_classes)
+        # model, _ = build(args)
         if ema:
             for param in model.parameters():
                 param.detach_()
@@ -63,14 +73,18 @@ def train(args, snapshot_path):
         random.seed(args.seed + worker_id)
 
     #
-    # inp = torch.randn(1, 3, 512, 512)
-    # _, out=output(inp)
+    # inp = torch.randn(10, 3, 512, 512).cuda()
+    # out = model(inp)
     # print(out.shape)
 
     # db_train = LabeledDatasets(base_dir=args.data_path, split="train", num=None, transform=transforms.Compose([
     #     RandomGenerator(args.patch_size)]))
     db_train = BaseDataSets(base_dir=args.data_path, split="train", transform="weak")
-    db_val = BaseDataSets(base_dir=args.data_path, split="val", transform=None)
+    # db_val = BaseDataSets(base_dir=args.data_path, split="val", transform=None)
+    if args.dataset == 'DeepCrack':
+        db_val = BaseDataSets(base_dir=args.data_path, split="train", transform=None)
+    else:
+        db_val = BaseDataSets(base_dir=args.data_path, split="val", transform=None)
 
     trainloader = DataLoader(db_train, batch_size = args.batch_size, shuffle=False,
                              num_workers=0, pin_memory=True, worker_init_fn=worker_init_fn, drop_last=True)
@@ -78,7 +92,7 @@ def train(args, snapshot_path):
 
     # optimizer = optim.SGD(output.parameters(), lr=base_lr,
     #                       momentum=0.9, weight_decay=0.0001)
-    optimizer = optim.AdamW(model.parameters(), lr=base_lr, weight_decay=0.0001)
+    optimizer = optim.AdamW(model.parameters(), lr=base_lr, weight_decay=weight_decay)
 
     ce_loss = CrossEntropyLoss()
     bce_loss = BCEWithLogitsLoss()
@@ -89,6 +103,8 @@ def train(args, snapshot_path):
 
     iter_num = 0
     best_performance = 0.0
+    a = 0.5
+    b = 0.5
     max_epoch = args.epoch_num
     total_iterations = max_epoch * len(trainloader)
     print(total_iterations)
@@ -99,9 +115,9 @@ def train(args, snapshot_path):
     for epoch_num in range(max_epoch):
 
         tbar = tqdm(trainloader, desc='epoch {}'.format(epoch_num))
-        tot_loss = 0
-        tot_ce_loss = 0
-        tot_dice_loss = 0
+        loss_list = []
+        ce_loss_list = []
+        dice_loss_list = []
 
         for i_batch, sampled_batch in enumerate(tbar):
             volume_batch, label_batch = sampled_batch['image'], sampled_batch['label'].squeeze(1)
@@ -118,14 +134,13 @@ def train(args, snapshot_path):
             loss_dice = dice_loss(
                 outputs_soft, label_batch.unsqueeze(1))
 
-            tot_dice_loss += loss_dice.item()
-            tot_ce_loss += loss_bce.item()
+            dice_loss_list.append(loss_dice.item())
+            ce_loss_list.append(loss_bce.item())
 
-            supervised_loss = 0.5 * (loss_dice + loss_bce)
-
+            supervised_loss = a * loss_dice + b * loss_bce
 
             loss = supervised_loss
-            tot_loss += loss.item()
+            loss_list.append(loss.item())
 
             optimizer.zero_grad()
             loss.backward()
@@ -181,8 +196,8 @@ def train(args, snapshot_path):
                 if val_mIoU > best_performance:
                     best_performance = val_mIoU
                     save_mode_path = os.path.join(snapshot_path,
-                                                  'best_iter_{}_mIoU_{}.pth'.format(
-                                                      iter_num, round(best_performance, 4)))
+                                                  'best_ep_{}_iter_{}_mIoU_{}.pth'.format(
+                                                      epoch_num, iter_num, round(best_performance, 4)))
                     save_best = os.path.join(snapshot_path,
                                              '{}_best_model.pth'.format(args.model))
                     torch.save(model.state_dict(), save_mode_path)
@@ -190,7 +205,8 @@ def train(args, snapshot_path):
                     logger.info("best found at epoch {}".format(epoch_num))
 
                 logger.info(
-                    'epoch %d, iteration %d, loss : %f, mean_dice : %f, mean_mIoU : %f' % (epoch_num, iter_num, tot_loss/len(trainloader), val_dice, val_mIoU))
+                    'epoch %d, iteration %d, loss : %f, mean_dice : %f, mean_mIoU : %f' % (epoch_num, iter_num, np.mean(loss_list), val_dice, val_mIoU))
+                print (np.mean(ce_loss_list), np.mean(dice_loss_list))
                 model.train()
 
 
@@ -228,6 +244,12 @@ if __name__ == "__main__":
 
     if not os.path.exists(snapshot_path):
         os.makedirs(snapshot_path)
+    else:
+        for filename in os.listdir(snapshot_path):
+            full_path = os.path.join(snapshot_path, filename)
+            if os.path.isfile(full_path) and filename.endswith(".pth"):
+                os.remove(full_path)
+
 
     if not os.path.exists(os.path.join(snapshot_path , 'log') ):
         os.makedirs(os.path.join(snapshot_path , 'log') )

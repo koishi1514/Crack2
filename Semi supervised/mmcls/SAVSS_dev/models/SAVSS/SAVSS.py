@@ -228,7 +228,7 @@ class SAVSS(BaseBackbone):
                     outs.append(patch_token_mid)
                 elif i == self.out_indices[3]:
                     patch_token_mid = self.gn16(self.conv256to16(patch_token))
-                    patch_token_mid = nn.Upsample(size=(512, 512), mode="bilinear")(patch_token_mid)
+                    patch_token_mid = nn.Upsample(size=(256, 256), mode="bilinear")(patch_token_mid)
                     outs.append(patch_token_mid)
                 else:
                     continue

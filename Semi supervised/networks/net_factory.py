@@ -6,6 +6,7 @@ import argparse
 from networks.config import get_config
 from networks.nnunet import initialize_network
 from networks.crackformerII import crackformer
+from models.decoder import build
 
 
 def net_factory(net_type="unet", in_chns=1, class_num=3):
@@ -28,6 +29,9 @@ def net_factory(net_type="unet", in_chns=1, class_num=3):
         net = initialize_network(threeD=False, num_classes=class_num).cuda()
     elif net_type == "crackformer":
         net = crackformer(in_channels=in_chns, final_hidden_dims=64, num_classes=class_num).cuda()
+    elif net_type == "SCSegamba":
+        net, _ = build(args=None)
+        net = net.cuda()
     else:
         net = None
     return net

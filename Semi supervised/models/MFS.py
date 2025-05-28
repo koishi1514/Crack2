@@ -36,9 +36,9 @@ class MFS(nn.Module):
         self.linear_pred_1 = nn.Conv2d(1, 1, kernel_size=1)
         self.dropout = nn.Dropout(p=0.1)
 
-        self.DySample_C_2 = DySample(embedding_dim, scale=2)
-        self.DySample_C_4 = DySample(embedding_dim, scale=4)
-        self.DySample_C_8 = DySample(embedding_dim, scale=8)
+        self.DySample_C_2 = DySample(embedding_dim, scale=1)
+        self.DySample_C_4 = DySample(embedding_dim, scale=2)
+        self.DySample_C_8 = DySample(embedding_dim, scale=4)
 
     def forward(self, inputs):
         c4, c3, c2, c1 = inputs

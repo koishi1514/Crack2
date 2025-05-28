@@ -1,8 +1,8 @@
 import  argparse
 import os
 
-dataset = 'for_test'
-# CRACK500, CFD
+dataset = 'CRACK500'
+# CRACK500, CFD, DeepCrack
 data_path = os.path.join('../dataset', dataset)
 root_path = '..'
 
@@ -17,18 +17,21 @@ parser.add_argument('--dataset', type=str,
 parser.add_argument('--exp', type=str,
                     default='test1', help='experiment_name')
 parser.add_argument('--model', type=str,
-                    default='crackformer', help='model_name')
+                    default='SCSegamba', help='model_name')
+# nnUNet 要如此大写
 
 parser.add_argument('--max_iterations', type=int,
                     default=30000, help='maximum epoch number to train')
-parser.add_argument('--epoch_num', type=int, default=10,
+parser.add_argument('--epoch_num', type=int, default=80,
                     help='epochs')
-parser.add_argument('--batch_size', type=int, default=4,
+parser.add_argument('--batch_size', type=int, default=8,
                     help='batch_size per gpu')
 parser.add_argument('--deterministic', type=int,  default=1,
                     help='whether use deterministic training')
-parser.add_argument('--base_lr', type=float,  default=0.001,
+parser.add_argument('--base_lr', type=float,  default=0.0001,
                     help='segmentation network learning rate')
+parser.add_argument('--weight_decay', type=float,  default=0.01,
+                    help='weight decay')
 parser.add_argument('--patch_size', type=list,  default=[256, 256],
                     help='patch size of network input')
 parser.add_argument('--seed', type=int,  default=1337, help='random seed')
