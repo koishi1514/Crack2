@@ -11,11 +11,8 @@ from medpy import metric
 from tqdm import tqdm
 import logging
 
-from urllib3.filepost import writer
-
 from utils import metrics
 
-# from networks.efficientunet import UNet
 from networks.net_factory import net_factory
 # from dataloaders.CRACK500_labeled import BaseDataSets
 from torch.utils.data.dataloader import DataLoader
@@ -24,6 +21,7 @@ import cv2
 
 from configs.config_supervised import args
 # from configs.config_supervised_SCSegamba_for_Deepcrack_test import args
+# from configs.config_supervised_deepcrack_test import args
 
 datasets = ("CRACK500", "DeepCrack")
 
@@ -76,13 +74,6 @@ def draw_sem_seg_by_cv2_sum(image, gt_sem_seg, pred_sem_seg, palette, threshold=
     image[mask != 0] = results[mask != 0]
     return image
 
-def calculate_metric_percase(pred, gt):
-    pred[pred > 0] = 1
-    gt[gt > 0] = 1
-    dice = metric.binary.dc(pred, gt)
-    # asd = metric.binary.asd(pred, gt)
-    # hd95 = metric.binary.hd95(pred, gt)
-    return dice, 0, 0
 
 
 def test_single_volume(case, net, test_save_path, args):
@@ -133,12 +124,10 @@ def test_single_volume(case, net, test_save_path, args):
 
     return metric_single_img, single_pred, single_label
 
-def Inference(args):
+def Inference(args, snapshot_path):
 
     # only for fully supervised output
 
-    snapshot_path = "../output/{}/{}".format(
-        args.exp, args.model)
 
     test_save_path = "../output/{}/{}_predictions/{}".format(
         args.exp, args.model, args.dataset)
@@ -148,14 +137,6 @@ def Inference(args):
     if os.path.exists(test_save_path):
         shutil.rmtree(test_save_path)
     os.makedirs(test_save_path)
-
-    logger = logging.getLogger("my_logger")
-    logger.setLevel(logging.DEBUG)
-    file_handler = logging.FileHandler(os.path.join(snapshot_path ,'log.txt'))
-    file_handler.setLevel(logging.DEBUG)
-    file_formatter = logging.Formatter('%(asctime)s - %(message)s')
-    file_handler.setFormatter(file_formatter)
-    logger.addHandler(file_handler)
 
 
     net = net_factory(net_type=args.model, in_chns=3,
@@ -232,6 +213,19 @@ def Inference(args):
 
 if __name__ == '__main__':
     # FLAGS = parser.parse_args()
-    metric = Inference(args)
+    snapshot_path = "../output/{}/{}".format(
+        args.exp, args.model)
+
+    global logger
+
+    logger = logging.getLogger("my_logger")
+    logger.setLevel(logging.DEBUG)
+    file_handler = logging.FileHandler(os.path.join(snapshot_path ,'log.txt'))
+    file_handler.setLevel(logging.DEBUG)
+    file_formatter = logging.Formatter('%(asctime)s - %(message)s')
+    file_handler.setFormatter(file_formatter)
+    logger.addHandler(file_handler)
+
+    metric = Inference(args, snapshot_path)
 
 

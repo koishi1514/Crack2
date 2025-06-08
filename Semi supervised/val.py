@@ -17,13 +17,14 @@ def calculate_metric_percase(pred, gt):
         return 0, 0
 
 
-def test_single_volume(image, label, net, classes, patch_size=[256, 256]):
+def test_single_volume(case, net, patch_size=[256, 256]):
     # drop batch
     # image = image.squeeze(0)
     # label = label.squeeze(0)
-
-    image = image.cuda()
-    label = label.cpu().detach().numpy()
+    image = case['image'].cuda()
+    label = case['label'].cpu().detach().numpy()
+    # image = image.cuda()
+    # label = label.cpu().detach().numpy()
 
     net.eval()
     with torch.no_grad():
@@ -41,8 +42,8 @@ def test_single_volume(image, label, net, classes, patch_size=[256, 256]):
     prediction = prediction.squeeze()
     label = label.squeeze()
 
-    metric_list.append(calculate_metric_percase_val(prediction, label))
-    # dice, mIoU, precision, recall, f1
+    metric_list = calculate_metric_percase_val(prediction, label)
+    # [dice, mIoU, precision, recall, f1]
     return metric_list
 
 

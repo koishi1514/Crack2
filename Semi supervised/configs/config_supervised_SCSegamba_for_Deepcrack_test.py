@@ -37,7 +37,8 @@ parser.add_argument('--patch_size', type=list,  default=[256, 256],
 parser.add_argument('--seed', type=int,  default=1337, help='random seed')
 parser.add_argument('--num_classes', type=int,  default=1,
                     help='output channel of network')
-
+parser.add_argument('--loss_weight', type=tuple,  default=(1,0),
+                    help='weight between bce loss and dice loss( [0] for bce, [1] for dice )')
 
 parser.add_argument('--labeled_num', type=int, default=50,
                     help='labeled data count')

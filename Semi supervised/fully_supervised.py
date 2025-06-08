@@ -31,8 +31,12 @@ from networks.net_factory import net_factory
 from utils import losses, metrics, ramps
 from val import test_single_volume
 
-# from configs.config_supervised import args
-from configs.config_supervised_SCSegamba_for_Deepcrack_test import args
+from configs.config_supervised import args
+# from configs.config_supervised_SCSegamba_for_Deepcrack_test import args
+# from configs.config_supervised_deepcrack_test import args
+
+# for test
+# from configs.config_supervised_test import args
 
 datasets = ("CRACK500", "DeepCrack")
 
@@ -86,7 +90,7 @@ def train(args, snapshot_path):
     else:
         db_val = BaseDataSets(base_dir=args.data_path, split="val", transform=None)
 
-    trainloader = DataLoader(db_train, batch_size = args.batch_size, shuffle=False,
+    trainloader = DataLoader(db_train, batch_size = args.batch_size, shuffle=True,
                              num_workers=0, pin_memory=True, worker_init_fn=worker_init_fn, drop_last=True)
     valloader = DataLoader(db_val, batch_size=1, shuffle=False, num_workers=0)
 
@@ -103,8 +107,8 @@ def train(args, snapshot_path):
 
     iter_num = 0
     best_performance = 0.0
-    a = 0.5
-    b = 0.5
+    a_dice = args.loss_weight[1]
+    a_bce = args.loss_weight[0]
     max_epoch = args.epoch_num
     total_iterations = max_epoch * len(trainloader)
     print(total_iterations)
@@ -137,7 +141,7 @@ def train(args, snapshot_path):
             dice_loss_list.append(loss_dice.item())
             ce_loss_list.append(loss_bce.item())
 
-            supervised_loss = a * loss_dice + b * loss_bce
+            supervised_loss = a_dice * loss_dice + a_bce * loss_bce
 
             loss = supervised_loss
             loss_list.append(loss.item())
@@ -175,16 +179,17 @@ def train(args, snapshot_path):
             if iter_num > 0 and iter_num % (len(trainloader)) == 0:
 
                 model.eval()
-                metric_list = 0.0
+                metric_list = []
                 for i_batch, sampled_batch in enumerate(valloader):
                     metric_i = test_single_volume(
-                        sampled_batch["image"], sampled_batch["label"], model, classes=num_classes)
-                    metric_list += np.array(metric_i)
+                        sampled_batch, model)
+                    metric_list.append((metric_i))
 
-                metric_list = metric_list / len(db_val)
+                # metric_list = metric_list / len(db_val)
+                metric_list = np.array(metric_list)
+                # mean_metric = np.mean(metric_list, axis=0)
 
                 # dc, mIoU, p, r, f1
-
 
                 val_dice = np.mean(metric_list, axis=0)[0]
                 val_mIoU = np.mean(metric_list, axis=0)[1]

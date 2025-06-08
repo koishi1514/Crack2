@@ -40,6 +40,7 @@ parser.add_argument('--num_classes', type=int,  default=1,
 parser.add_argument('--loss_weight', type=tuple,  default=(1,0),
                     help='weight between bce loss and dice loss( [0] for bce, [1] for dice )')
 
+
 parser.add_argument('--labeled_num', type=int, default=50,
                     help='labeled data count')
 
