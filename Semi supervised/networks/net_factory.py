@@ -7,10 +7,12 @@ from networks.config import get_config
 from networks.nnunet import initialize_network
 from networks.crackformerII import crackformer
 from networks.crackmer.Net import crackmer
-from models.decoder import build
+from networks.CTCrackseg.TransMUNet import TransMUNet
+from networks.SimCrack.consnet import ConsNet
+# from models.decoder import build
 
 
-def net_factory(net_type="unet", in_chns=1, class_num=3):
+def net_factory(net_type="unet", in_chns=1, class_num=3, args=None):
     if net_type == "unet":
         net = UNet(in_chns=in_chns, class_num=class_num).cuda()
     elif net_type == "enet":
@@ -30,11 +32,16 @@ def net_factory(net_type="unet", in_chns=1, class_num=3):
         net = initialize_network(threeD=False, num_classes=class_num).cuda()
     elif net_type == "crackformer":
         net = crackformer(in_channels=in_chns, final_hidden_dims=64, num_classes=class_num).cuda()
-    elif net_type == "SCSegamba":
-        net, _ = build(args=None)
-        net = net.cuda()
+    # elif net_type == "SCSegamba":
+    #     net, _ = build(args=None)
+    #     net = net.cuda()
     elif net_type == "crackmer":
+        # 难以训练，暂时弃用
         net = crackmer(in_channels=in_chns, final_hidden_dims=64, num_classes=class_num).cuda()
+    elif net_type == "CTCrackseg":
+        net = TransMUNet(n_classes=class_num).cuda()
+    elif net_type == "SimCrack":
+        net = ConsNet(n_channels=in_chns, n_classes=class_num, att=False, consistent_features=False, img_size=256).cuda()
     else:
         net = None
     return net

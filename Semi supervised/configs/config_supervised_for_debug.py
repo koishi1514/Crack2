@@ -17,14 +17,14 @@ parser.add_argument('--dataset', type=str,
 parser.add_argument('--exp', type=str,
                     default='debug_crack500', help='experiment_name')
 parser.add_argument('--model', type=str,
-                    default='crackmer', help='model_name')
+                    default='SimCrack', help='model_name')
 # nnUNet 要如此大写
 
 parser.add_argument('--max_iterations', type=int,
                     default=30000, help='maximum epoch number to train')
 parser.add_argument('--epoch_num', type=int, default=10,
                     help='epochs')
-parser.add_argument('--batch_size', type=int, default=16,
+parser.add_argument('--batch_size', type=int, default=1,
                     help='batch_size per gpu')
 parser.add_argument('--deterministic', type=int,  default=1,
                     help='whether use deterministic training')

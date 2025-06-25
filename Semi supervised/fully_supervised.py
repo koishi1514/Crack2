@@ -31,12 +31,12 @@ from networks.net_factory import net_factory
 from utils import losses, metrics, ramps
 from val import test_single_volume
 
-from configs.config_supervised import args
+# from configs.config_supervised import args
 # from configs.config_supervised_SCSegamba_for_Deepcrack_test import args
 # from configs.config_supervised_deepcrack_test import args
 
 # for debug
-# from configs.config_supervised_for_debug import args
+from configs.config_supervised_for_debug import args
 
 datasets = ("CRACK500", "DeepCrack")
 
@@ -77,9 +77,9 @@ def train(args, snapshot_path):
         random.seed(args.seed + worker_id)
 
     #
-    # inp = torch.randn(10, 3, 256, 256).cuda()
-    # out = model(inp)
-    # print(out.shape)
+    inp = torch.randn(1, 3, 256, 256).cuda()
+    out = model(inp)
+    print(out.shape)
 
     # db_train = LabeledDatasets(base_dir=args.data_path, split="train", num=None, transform=transforms.Compose([
     #     RandomGenerator(args.patch_size)]))

@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch
-from networks.utils import UnetConv3, UnetUp3_CT, UnetGridGatingSignal3, UnetDsv3
+from networks.attention_unet_utils import UnetConv3, UnetUp3_CT, UnetGridGatingSignal3, UnetDsv3
 import torch.nn.functional as F
 from networks.networks_other import init_weights
 from networks.grid_attention_layer import GridAttentionBlock3D
