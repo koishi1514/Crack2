@@ -286,35 +286,3 @@ class WeakStrongAugment(object):
 
 
 
-if __name__ == '__main__':
-
-    from configs.config_for_camus_dataset_test import args
-    from torch.utils.data import DataLoader
-
-
-    batch_size = args.batch_size
-    root_path = r'D:\work\SSL4MIS-master\data\CAMUS'
-
-
-    split_json_path = os.path.join(root_path, "frame_split.json")
-    with open(split_json_path, 'r') as f:
-        split_dict = json.load(f)
-
-
-    db_train = BaseDataSets(base_dir=root_path, split="train", num=None, transform=transforms.Compose([
-        RandomGenerator(args.patch_size)
-    ]))
-    db_val = BaseDataSets(base_dir=root_path, split="val")
-    db_test = BaseDataSets(base_dir=root_path, split="test")
-    db_retrain_st = BaseDataSets(base_dir=root_path, split="retrain", num=None, transform=transforms.Compose([
-        RandomGenerator(args.patch_size)]), addition = 'all')
-
-    db_retrain_st_plus = BaseDataSets(base_dir=root_path, split="retrain", num=None, transform=transforms.Compose([
-        RandomGenerator(args.patch_size)]), addition = 'reliable')
-
-    def worker_init_fn(worker_id):
-        random.seed(args.seed + worker_id)
-
-
-
-

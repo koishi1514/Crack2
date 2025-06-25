@@ -1,7 +1,8 @@
 import  argparse
 import os
 
-dataset = 'CRACK500'
+# 只用于在真实数据上进行测试
+dataset = 'for_test_cropped'
 # CRACK500, CFD
 data_path = os.path.join('../dataset', dataset)
 root_path = '..'
@@ -15,7 +16,7 @@ parser.add_argument('--data_path', type=str,
 parser.add_argument('--dataset', type=str,
                     default=dataset, help='Name of Dataset')
 parser.add_argument('--exp', type=str,
-                    default='test', help='experiment_name')
+                    default='test1', help='experiment_name')
 parser.add_argument('--model', type=str,
                     default='nnUNet', help='model_name')
 

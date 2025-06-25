@@ -277,3 +277,25 @@ def conf_ce_loss(inputs, targets,
             return positive_loss_mat[mask].mean(), pass_rate, negative_loss_mat[mask_neg].mean()
     else:
         raise NotImplementedError
+
+
+def masked_bce_loss(output, target, mask):
+    # 计算标准的BCE损失
+    bce_loss = F.binary_cross_entropy_with_logits(output, target, reduction='none')  # 不对所有像素求平均
+    masked_bce_loss = bce_loss * mask  # 将掩码为0的位置的损失设置为0
+    return masked_bce_loss.sum() / mask.sum()
+
+def masked_dice_loss(output, target, mask):
+    # 输出为未经激活的 logits，目标是0和1的张量，mask是0或1的掩码
+    # 先应用sigmoid激活函数，得到概率值
+    # output = torch.sigmoid(output)
+    # input : b, c, h, w
+
+    intersection = (output * target).sum(dim=(2, 3))  # 对每个 batch 中的每个元素进行求和
+    union = output.sum(dim=(2, 3)) + target.sum(dim=(2, 3))
+
+    dice = (2. * intersection) / (union + 1e-5)  # 添加一个小的常数来避免除以零的情况
+
+    masked_dice = dice * mask.sum(dim=(2, 3))  # 对每个样本的掩码区域进行求和
+
+    return 1 - masked_dice.mean()  # 对整个批次求平均

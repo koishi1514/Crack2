@@ -5,6 +5,7 @@ import importlib
 import csv
 import json
 import random
+import copy
 
 import numpy as np
 import torch
@@ -29,8 +30,10 @@ import cv2
 
 # from configs.config_supervised import args
 # from configs.config_supervised_SCSegamba_for_Deepcrack_test import args
-from configs.config_supervised_deepcrack_test import args
-from dataloaders.CRACK500_labeled import BaseDataSets
+from configs.config_supervised_post_training import args
+from dataloaders.CRACK500_labeled import BaseDataSets as BaseDataSets_origin
+from test import draw_sem_seg_by_cv2_sum
+
 
 datasets = ("CRACK500", "DeepCrack")
 
@@ -73,19 +76,23 @@ def test_single_volume(case, net, test_save_path=None, args=None):
 
     return metric_single_img, single_pred, single_label
 
-def Inference(args, snapshot_path, net):
+def Inference(args, snapshot_path, net, iternum, mask_range):
 
     # only for fully supervised output
 
-    test_save_path = "../output/{}/{}_predictions/{}".format(
+    test_save_path = "../output/{}/{}_predictions/post_train".format(
+        args.exp, args.model, args.dataset)
+    test_save_path_th = "../output/{}/{}_predictions/post_train_th".format(
         args.exp, args.model, args.dataset)
 
     csv_save_path = os.path.join(test_save_path, "output.csv")
 
     # if os.path.exists(test_save_path):
     #     shutil.rmtree(test_save_path)
-    # os.makedirs(test_save_path)
-
+    if not os.path.exists(test_save_path):
+        os.makedirs(test_save_path)
+    if not os.path.exists(test_save_path_th):
+        os.makedirs(test_save_path_th)
 
     net.eval()
 
@@ -102,6 +109,7 @@ def Inference(args, snapshot_path, net):
     label_list = []
     pred_list = []
     pred_post_list = []
+    mask_list = []
     name_list = []
 
     metric_per_img_list = []
@@ -128,24 +136,39 @@ def Inference(args, snapshot_path, net):
         # pred_crf_list.append(pred_crf)
 
         # 改为人工选取阈值（暂时）
-        threshold_post = 0.7
-        pred[pred >= threshold_post] = 1
-        pred[pred < threshold_post] = 0
-        pred_post = pred
+        pred_post = pred.copy()
+        pred_post[pred_post >= mask_range[1]] = 1
+        pred_post[pred_post <= mask_range[0]] = 0
+        mask = np.where((pred >= mask_range[1]) | (pred <= mask_range[0]), 1, 0)
+        # print(mask.sum())
+        mask_list.append(mask)
         pred_post_list.append(pred_post)
+
+        # image_out = image
+        # palette = [[255, 255, 255],[37, 143, 36], [178, 48, 0], [178, 151, 0]]
+        # draw_output = draw_sem_seg_by_cv2_sum(image_out, label, pred, palette)
+        # draw_output = cv2.cvtColor(draw_output.transpose(1,2,0), cv2.COLOR_RGB2BGR)
+        # out_dir =  os.path.join(test_save_path, name[:-4]+'.png')
+        # cv2.imwrite(out_dir, draw_output)
+        #
+        # draw_output = draw_sem_seg_by_cv2_sum(image_out, label, pred_post, palette)
+        # draw_output = cv2.cvtColor(draw_output.transpose(1,2,0), cv2.COLOR_RGB2BGR)
+        # out_dir =  os.path.join(test_save_path_th, name[:-4]+'.png')
+        # cv2.imwrite(out_dir, draw_output)
 
 
     avg_metric = first_total / test_num
-    dataset = NewDataSets(img_list=image_list, label_list=pred_post_list, name_list=name_list, transform=None, split='train')
-    # final_accuracy_all = metrics.cal_prf_metrics_all(pred_list, label_list)
-    # final_accuracy_all = np.array(final_accuracy_all)
-    # Precision_list, Recall_list, F_list = final_accuracy_all[:, 1], final_accuracy_all[:,2], final_accuracy_all[:, 3]
-    # mIoU_all, max_threshold_indice = metrics.cal_mIoU_metric_all(pred_list, label_list)
-    # ois = metrics.cal_OIS_metric(pred_list, label_list)
-    # ods = metrics.cal_ODS_metric(pred_list, label_list)
-    # precision = np.max(Precision_list)
-    # recall = np.max(Recall_list)
-    # f1 = np.max(F_list)
+    dataset = NewDataSets(img_list=image_list, label_list=pred_post_list, name_list=name_list, mask_list=mask_list, real_label_list = label_list, transform=None, split='train')
+
+    final_accuracy_all = metrics.cal_prf_metrics_all(pred_list, label_list)
+    final_accuracy_all = np.array(final_accuracy_all)
+    Precision_list, Recall_list, F_list = final_accuracy_all[:, 1], final_accuracy_all[:,2], final_accuracy_all[:, 3]
+    mIoU_all, max_threshold_indice = metrics.cal_mIoU_metric_all(pred_list, label_list)
+    ois = metrics.cal_OIS_metric(pred_list, label_list)
+    ods = metrics.cal_ODS_metric(pred_list, label_list)
+    precision = np.max(Precision_list)
+    recall = np.max(Recall_list)
+    f1 = np.max(F_list)
     # print (max_threshold_indice)
 
 
@@ -157,10 +180,10 @@ def Inference(args, snapshot_path, net):
     #     writer.writerow(["overall_metrics", mIoU_all, ois, ods, f1])
 
 
-    # logger.info("metric overall dataset: mIoU: {}, OIS: {}, ODS: {}, F1: {}".format(mIoU_all, ois, ods, f1) )
+    logger.info("post train iter {}, metric overall dataset: mIoU: {}, OIS: {}, ODS: {}, F1: {}".format(iternum, mIoU_all, ois, ods, f1) )
     # logger.info("metric avg image:  Dice: {}, mIoU: {}, precision: {}, recall: {}, F1: {}"
     #             .format(avg_metric[0], avg_metric[1], avg_metric[2], avg_metric[3], avg_metric[4]) )
-    # print("metric overall dataset: mIoU: {}, OIS: {}, ODS: {}, F1: {}".format(mIoU_all, ois, ods, f1))
+    print("post train iter {}, metric overall dataset: mIoU: {}, OIS: {}, ODS: {}, F1: {}".format(iternum, mIoU_all, ois, ods, f1))
     # print("metric avg image:  Dice: {}, mIoU: {}, precision: {}, recall: {}, F1: {}"
     #       .format(avg_metric[0], avg_metric[1], avg_metric[2], avg_metric[3], avg_metric[4]) )
     return avg_metric, dataset
@@ -168,6 +191,7 @@ def Inference(args, snapshot_path, net):
 
 def post_train(args, snapshot_path, new_dataset, model):
 
+    origin_dataset_path = '../dataset/CRACK500/'
     base_lr = args.base_lr
     weight_decay = args.weight_decay
     num_classes = args.num_classes
@@ -181,8 +205,9 @@ def post_train(args, snapshot_path, new_dataset, model):
     def worker_init_fn(worker_id):
         random.seed(args.seed + worker_id)
 
-    db_train_origin = BaseDataSets(base_dir=args.data_path, split="train", transform="weak")
+    db_train_origin = BaseDataSets_origin(base_dir=origin_dataset_path, split="train", transform="weak")
     db_train = new_dataset
+    db_val = BaseDataSets(base_dir=args.data_path, split='test', transform=None)
     # if args.dataset == 'DeepCrack':
     #     db_val = BaseDataSets(base_dir=args.data_path, split="train", transform=None)
     # else:
@@ -191,7 +216,7 @@ def post_train(args, snapshot_path, new_dataset, model):
                              num_workers=0, pin_memory=True, worker_init_fn=worker_init_fn, drop_last=True)
     trainloader = DataLoader(db_train, batch_size = args.batch_size, shuffle=True,
                              num_workers=0, pin_memory=True, worker_init_fn=worker_init_fn, drop_last=True)
-    valloader = DataLoader(db_train, batch_size=1, shuffle=False, num_workers=0)
+    valloader = DataLoader(db_val, batch_size=1, shuffle=False, num_workers=0)
 
     # optimizer = optim.SGD(output.parameters(), lr=base_lr,
     #                       momentum=0.9, weight_decay=0.0001)
@@ -220,11 +245,14 @@ def post_train(args, snapshot_path, new_dataset, model):
         loss_list = []
         ce_loss_list = []
         dice_loss_list = []
+        loss_old = []
         aux_iter = iter(trainloader_origin)
 
         for i_batch, sampled_batch in enumerate(tbar):
             volume_batch, label_batch = sampled_batch['image'], sampled_batch['label'].squeeze(1)
             volume_batch, label_batch = volume_batch.cuda(), label_batch.cuda().to(torch.float32)
+            mask = sampled_batch['mask'].cuda()
+
             try:
                 sampled_batch_ori = next(aux_iter)
             except StopIteration:
@@ -243,25 +271,31 @@ def post_train(args, snapshot_path, new_dataset, model):
                 outputs = outputs[0]
                 outputs_ori = outputs_ori[0]
 
+            loss_bce = losses.masked_bce_loss(outputs, label_batch.unsqueeze(1), mask.unsqueeze(1))
+            loss_bce_1 = bce_loss(outputs, label_batch.unsqueeze(1))
+            loss_bce_ori = bce_loss(outputs_ori, label_batch_ori.unsqueeze(1))
+
             outputs_soft = torch.sigmoid(outputs)
             outputs_ori_soft = torch.sigmoid(outputs_ori)
 
-            loss_bce = bce_loss(outputs, label_batch.unsqueeze(1))
-            loss_dice = dice_loss(
-                outputs_soft, label_batch.unsqueeze(1))
-
-            loss_bce_ori = bce_loss(outputs_ori, label_batch_ori.unsqueeze(1))
+            loss_dice = losses.masked_dice_loss(
+                outputs_soft, label_batch.unsqueeze(1), mask.unsqueeze(1))
+            loss_dice_1 = dice_loss(outputs_soft, label_batch.unsqueeze(1))
             loss_dice_ori = dice_loss(outputs_ori_soft, label_batch_ori.unsqueeze(1))
+
             supervised_loss_ori = a_dice * loss_dice_ori + a_bce * loss_bce_ori
 
             dice_loss_list.append(loss_dice.item())
             ce_loss_list.append(loss_bce.item())
 
             supervised_loss_1 = a_dice * loss_dice + a_bce * loss_bce
-            supervised_loss = 0.5 * (supervised_loss_ori + supervised_loss_1)
+            supervised_loss_old = a_dice * loss_dice_1 + a_bce * loss_bce_1
+
+            supervised_loss = 0.3 * supervised_loss_ori + 0.7 * supervised_loss_1
 
             loss = supervised_loss
             loss_list.append(loss.item())
+            # loss_old.append(supervised_loss_old.item())
 
             optimizer.zero_grad()
             loss.backward()
@@ -291,7 +325,7 @@ def post_train(args, snapshot_path, new_dataset, model):
 
         model.eval()
         metric_list = []
-        for i_batch, sampled_batch in enumerate(tbar):
+        for i_batch, sampled_batch in enumerate(valloader):
             metric_i, _, _ = test_single_volume(sampled_batch, model)
             metric_list.append( (metric_i) )
 
@@ -302,6 +336,9 @@ def post_train(args, snapshot_path, new_dataset, model):
         val_dice = np.mean(metric_list, axis=0)[0]
         val_mIoU = np.mean(metric_list, axis=0)[1]
 
+        if val_mIoU > best_performance:
+            best_performance = val_mIoU
+            best_model_state = copy.deepcopy(model.state_dict())
             # print (performance, iter_num)
 
             # if val_mIoU > best_performance:
@@ -317,7 +354,7 @@ def post_train(args, snapshot_path, new_dataset, model):
 
         logger.info(
             'epoch %d, iteration %d, loss : %f, mean_dice : %f, mean_mIoU : %f' % (epoch_num, iter_num, np.mean(loss_list), val_dice, val_mIoU))
-        print (val_dice, val_mIoU)
+        print ('epoch %d, iteration %d, loss : %f, mean_dice : %f, mean_mIoU : %f' % (epoch_num, iter_num, np.mean(loss_list), val_dice, val_mIoU))
         model.train()
 
         if iter_num >= max_iterations:
@@ -332,7 +369,7 @@ def post_train(args, snapshot_path, new_dataset, model):
         #     logger.info("save output to {}".format(save_mode_path))
 
     # print (iter_num)
-    return "Training Finished!"
+    return best_model_state
 
 if __name__ == '__main__':
     # FLAGS = parser.parse_args()
@@ -357,11 +394,21 @@ if __name__ == '__main__':
     net.load_state_dict(torch.load(save_mode_path))
     print("init weight from {}".format(save_mode_path))
 
+    total_iternum = 40
+    high = 0.8
 
-    metric, new_dataset = Inference(args, snapshot_path, net)
+    low = 0.1
+    for iternum in range(0, total_iternum+1):
+        # threshold_post = high - iternum * ( high - low ) / (total_iternum)
+        mask_range = [low, high]
+        metric, new_dataset = Inference(args, snapshot_path, net, iternum, mask_range)
+        net_dict = post_train(args, snapshot_path, new_dataset, net)
 
-    post_train(args, snapshot_path, new_dataset, net)
+        net.load_state_dict(net_dict)
+        # low = low + 0.04
+        high = high - 0
 
+    metric, new_dataset = Inference(args, snapshot_path, net, total_iternum, [0,0])
 
 
 

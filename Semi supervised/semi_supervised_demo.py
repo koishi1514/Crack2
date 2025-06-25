@@ -28,6 +28,7 @@ from configs.config_st_plus_plus_test import args
 from utils import losses, metrics, ramps
 # from dataloaders.CAMUS import (BaseDataSets, RandomGenerator,
 #                                TwoStreamBatchSampler)
+# 可能后续需要添加新的dataloader 做半监督训练
 from dataloaders.CAMUS_labeled import BaseDataSets as LabeledDatasets
 from dataloaders.CAMUS_labeled import RandomGenerator
 from dataloaders.CAMUS_unlabeled import BaseDataSets as UnlabeledDatasets

@@ -523,7 +523,7 @@ def initialize_network(threeD=True, num_classes=2):
     network = Generic_UNet(default_dict["num_input_channels"], default_dict["base_num_features"], default_dict["num_classes"], len(default_dict["net_num_pool_op_kernel_sizes"]),
                            default_dict["conv_per_stage"], 2, conv_op, norm_op, norm_op_kwargs, dropout_op,
                            dropout_op_kwargs,
-                           net_nonlin, net_nonlin_kwargs, False, False, lambda x: x, InitWeights_He(
+                           net_nonlin, net_nonlin_kwargs, True, False, lambda x: x, InitWeights_He(
         1e-2),
         default_dict["net_num_pool_op_kernel_sizes"], default_dict["net_conv_kernel_sizes"], False, True, True)
     print("nnUNet have {} paramerters in total".format(

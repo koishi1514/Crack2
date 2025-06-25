@@ -23,7 +23,7 @@ from torch.nn.modules.loss import CrossEntropyLoss
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from tqdm import tqdm
-
+from torch.optim import lr_scheduler
 from dataloaders import utils
 
 
@@ -35,8 +35,8 @@ from configs.config_supervised import args
 # from configs.config_supervised_SCSegamba_for_Deepcrack_test import args
 # from configs.config_supervised_deepcrack_test import args
 
-# for test
-# from configs.config_supervised_test import args
+# for debug
+# from configs.config_supervised_for_debug import args
 
 datasets = ("CRACK500", "DeepCrack")
 
@@ -77,7 +77,7 @@ def train(args, snapshot_path):
         random.seed(args.seed + worker_id)
 
     #
-    # inp = torch.randn(10, 3, 512, 512).cuda()
+    # inp = torch.randn(10, 3, 256, 256).cuda()
     # out = model(inp)
     # print(out.shape)
 
@@ -96,7 +96,12 @@ def train(args, snapshot_path):
 
     # optimizer = optim.SGD(output.parameters(), lr=base_lr,
     #                       momentum=0.9, weight_decay=0.0001)
+    # crackmer
+    # optimizer = optim.Adam(model.parameters(), lr=base_lr)
+
     optimizer = optim.AdamW(model.parameters(), lr=base_lr, weight_decay=weight_decay)
+    # scheduler = lr_scheduler.CosineAnnealingWarmRestarts(optimizer=optimizer, T_0=10, T_mult=2)
+
 
     ce_loss = CrossEntropyLoss()
     bce_loss = BCEWithLogitsLoss()
@@ -131,9 +136,11 @@ def train(args, snapshot_path):
 
             if isinstance(outputs, tuple):
                 outputs = outputs[0]
+                feature_maps = outputs[1:]
 
-            outputs_soft = torch.sigmoid(outputs)
+            # outputs_soft = torch.sigmoid(outputs)
             loss_bce = bce_loss(outputs, label_batch.unsqueeze(1))
+            outputs_soft = torch.sigmoid(outputs)
 
             loss_dice = dice_loss(
                 outputs_soft, label_batch.unsqueeze(1))
@@ -153,9 +160,10 @@ def train(args, snapshot_path):
             lr_ = base_lr * (1.0 - iter_num / total_iterations) ** 0.9
             for param_group in optimizer.param_groups:
                 param_group['lr'] = lr_
+            # scheduler.step()
 
             iter_num = iter_num + 1
-            writer.add_scalar('info/lr', lr_, iter_num)
+            # writer.add_scalar('info/lr', lr_, iter_num)
             writer.add_scalar('info/total_loss', loss, iter_num)
             writer.add_scalar('info/loss_ce', loss_bce, iter_num)
             writer.add_scalar('info/loss_dice', loss_dice, iter_num)
@@ -196,7 +204,7 @@ def train(args, snapshot_path):
 
                 # print (performance, iter_num)
                 writer.add_scalar('info/val_mean_dice', val_dice, iter_num)
-                writer.add_scalar('info/val_mean_hd95', val_mIoU, iter_num)
+                writer.add_scalar('info/val_mean_IoU', val_mIoU, iter_num)
 
                 if val_mIoU > best_performance:
                     best_performance = val_mIoU
@@ -208,10 +216,11 @@ def train(args, snapshot_path):
                     torch.save(model.state_dict(), save_mode_path)
                     torch.save(model.state_dict(), save_best)
                     logger.info("best found at epoch {}".format(epoch_num))
+                    # print ("ce loss:", np.mean(ce_loss_list), ", best mIoU:", val_mIoU)
 
                 logger.info(
                     'epoch %d, iteration %d, loss : %f, mean_dice : %f, mean_mIoU : %f' % (epoch_num, iter_num, np.mean(loss_list), val_dice, val_mIoU))
-                print (np.mean(ce_loss_list), np.mean(dice_loss_list))
+                # print (np.mean(ce_loss_list), np.mean(dice_loss_list))
                 model.train()
 
 
@@ -219,7 +228,7 @@ def train(args, snapshot_path):
                 break
 
         # logging.warning(' ep %d : loss : %f, loss_ce: %f, loss_dice: %f' %(epoch_num, tot_loss/len(trainloader), tot_ce_loss/len(trainloader), tot_dice_loss/len(trainloader)))
-
+        print ("ce loss:", np.mean(ce_loss_list), ", mIoU:", val_mIoU)
         if epoch_num !=0 and epoch_num % 10 == 0:
             save_mode_path = os.path.join(
                 snapshot_path, 'iter_' + str(iter_num) + '.pth')

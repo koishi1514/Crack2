@@ -10,6 +10,7 @@ import torch
 from medpy import metric
 from tqdm import tqdm
 import logging
+from matplotlib import pyplot as plt
 
 from utils import metrics
 
@@ -22,6 +23,9 @@ import cv2
 from configs.config_supervised import args
 # from configs.config_supervised_SCSegamba_for_Deepcrack_test import args
 # from configs.config_supervised_deepcrack_test import args
+
+# for debug
+# from configs.config_supervised_for_debug import args
 
 datasets = ("CRACK500", "DeepCrack")
 
@@ -88,6 +92,7 @@ def test_single_volume(case, net, test_save_path, args):
     with torch.no_grad():
         out = net(image)
         if isinstance(out, tuple):
+            feature_maps = out
             out = out[0]
 
         out_soft = torch.sigmoid(out)
@@ -120,6 +125,26 @@ def test_single_volume(case, net, test_save_path, args):
     draw_output = cv2.cvtColor(draw_output.transpose(1,2,0), cv2.COLOR_RGB2BGR)
     out_dir =  os.path.join(test_save_path, name[:-4]+'.png')
     cv2.imwrite(out_dir, draw_output)
+
+    if args.model == "nnUNet":
+        figs, axes = plt.subplots(1, len(feature_maps)+1, figsize=(20, 4))
+        axes = axes.flatten()
+        axes[0].imshow(image_out.transpose(1,2,0))
+        axes[0].axis('off')
+
+        for i in range(0,len(feature_maps)):
+
+            img_tensor = feature_maps[i]
+            img_tensor = torch.sigmoid(img_tensor)
+            img_tensor = img_tensor.squeeze().cpu().detach().numpy()
+            axes[i+1].imshow(img_tensor, cmap='gray')
+            axes[i+1].axis('off')
+
+        plt.tight_layout()
+        plt.savefig(os.path.join(test_save_path, name[:-4]+'_features.png') )
+        # plt.show()
+        plt.close()
+
 
 
     return metric_single_img, single_pred, single_label

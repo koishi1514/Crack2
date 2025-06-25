@@ -20,14 +20,15 @@ import math
 
 class NewDataSets(Dataset):
     def __init__(
-        self,
-        img_list,
-        label_list,
-        name_list,
-        base_dir=None,
-        split="train",
-        transform=None,
-
+            self,
+            img_list,
+            label_list,
+            name_list,
+            mask_list=None,
+            real_label_list=None,
+            base_dir=None,
+            split="train",
+            transform=None,
     ):
         self._base_dir = base_dir
         self.split = split
@@ -36,6 +37,8 @@ class NewDataSets(Dataset):
         self.img_list = img_list
         self.label_list = label_list
         self.name_list = name_list
+        self.mask_list = mask_list
+        self.real_label_list = real_label_list
 
         if transform == 'weak' and 0: # never aug
             self.transform = transforms.Compose([
@@ -96,6 +99,8 @@ class NewDataSets(Dataset):
         image = self.img_list[idx]
         mask = self.label_list[idx]
         name = self.name_list[idx]
+        mask_post = self.mask_list[idx]
+        real_label = self.real_label_list[idx]
 
         # image: c, h ,w -> h, w, c
         image = image.transpose(1, 2, 0)
@@ -112,21 +117,25 @@ class NewDataSets(Dataset):
         if image.shape[0] == 1:
             image = torch.cat([image] * 3, dim=0)
 
-        # image1 = transforms.ToPILImage()(image)
-        # mask1 = transforms.ToPILImage()(mask)
+        mask1 = (mask > 0.5).float()
+        image1 = transforms.ToPILImage()(image)
+        mask1 = transforms.ToPILImage()(mask1)
+
+        mask_post1 = mask_post
         # image1.save(os.path.join(out_path, image_path))
         # mask1.save(os.path.join(out_path, mask_path))
         # print(2)
 
-        # fig, axes = plt.subplots(2, 2, figsize=(12, 6))
-        # axes[0][0].imshow(image1)
-        # axes[0][0].axis('off')
-        # axes[0][1].imshow(image.permute((1, 2, 0)))
-        # axes[0][1].axis('off')
-        # axes[1][0].imshow(mask1)
-        # axes[1][0].axis('off')
-        # axes[1][1].imshow(mask.permute((1, 2, 0)))
-        # axes[1][1].axis('off')
+        # fig, axes = plt.subplots(1, 4, figsize=(12, 6))
+        # axes[0].imshow(image1)
+        # axes[0].axis('off')
+        # axes[1].imshow(mask1, cmap='gray')
+        # axes[1].axis('off')
+        # axes[2].imshow(mask_post1, cmap='gray')
+        # axes[2].axis('off')
+        # axes[3].imshow(real_label, cmap='gray')
+        # axes[3].axis('off')
+        #
         # plt.tight_layout()
         # plt.show()
         # plt.close()
@@ -140,6 +149,7 @@ class NewDataSets(Dataset):
         sample["label"] = mask
         sample["idx"] = idx
         sample["name"] = name
+        sample["mask"] = mask_post
         return sample
 
 

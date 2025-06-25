@@ -23,7 +23,7 @@ from torch.utils.data.dataloader import DataLoader
 from PIL import Image
 import cv2
 
-from configs.config_supervised_test import args
+from configs.config_supervised_real_data_test import args
 
 
 datasets = ("CRACK500", "DeepCrack")

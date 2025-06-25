@@ -49,7 +49,7 @@ def test_single_volume(case, net, patch_size=[256, 256]):
 
 if __name__ == '__main__':
 
-    from configs.config_supervised_test import args
+    from configs.config_supervised_real_data_test import args
     from torch.utils.data import DataLoader
     from dataloaders.CRACK500_labeled import BaseDataSets
     from networks.crackformerII import crackformer
