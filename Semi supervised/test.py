@@ -27,6 +27,8 @@ from configs.config_supervised import args
 # for debug
 # from configs.config_supervised_for_debug import args
 
+from networks.wavelet_diy import HaarWaveletAttention
+
 datasets = ("CRACK500", "DeepCrack")
 
 try:
@@ -89,6 +91,7 @@ def test_single_volume(case, net, test_save_path, args):
 
     net.eval()
 
+    harr = []
     with torch.no_grad():
         out = net(image)
         if isinstance(out, tuple):

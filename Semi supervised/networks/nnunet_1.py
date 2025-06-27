@@ -288,8 +288,8 @@ class Generic_UNet(SegmentationNetwork):
         self.td = []
         self.tu = []
         self.seg_outputs = []
-        # self.haar_list = []
-        # self.cross_attn = []
+        self.haar_list = []
+        self.cross_attn = []
 
         output_features = base_num_features
         input_features = input_channels
@@ -312,9 +312,9 @@ class Generic_UNet(SegmentationNetwork):
             if not self.convolutional_pooling:
                 self.td.append(pool_op(pool_op_kernel_sizes[d]))
 
-            # if d != num_pool-1:
-            #     self.haar_list.append(HaarWavelet(in_channels=input_features, reduction_ratio=2))
-            #     self.cross_attn.append(Haar_CrossAttention(in_channels=input_features, d_model=input_features, num_heads=1))
+            if d != 0:
+                self.haar_list.append(HaarWavelet(in_channels=input_features, reduction_ratio=2))
+                self.cross_attn.append(Haar_CrossAttention(in_channels=output_features, in_channels_q=input_features, d_model=output_features, num_heads=1))
 
             input_features = output_features
             output_features = int(
@@ -410,6 +410,10 @@ class Generic_UNet(SegmentationNetwork):
         self.td = nn.ModuleList(self.td)
         self.tu = nn.ModuleList(self.tu)
         self.seg_outputs = nn.ModuleList(self.seg_outputs)
+
+        self.haar_list = nn.ModuleList(self.haar_list)
+        self.cross_attn = nn.ModuleList(self.cross_attn)
+
         if self.upscale_logits:
             self.upscale_logits_ops = nn.ModuleList(
                 self.upscale_logits_ops)  # lambda x:x is not a Module so we need to distinguish here
@@ -424,10 +428,19 @@ class Generic_UNet(SegmentationNetwork):
     def forward(self, x):
         skips = []
         seg_outputs = []
-
+        haar_feature = False
         for d in range(len(self.conv_blocks_context) - 1):
             x = self.conv_blocks_context[d](x)
-            skips.append(x)
+
+            if d != 0:
+                x_skip = self.cross_attn[d-1](haar_feature, x)
+            else:
+                x_skip = x
+
+            if d != len(self.conv_blocks_context) - 1 -1:
+                haar_feature = self.haar_list[d](x)
+
+            skips.append(x_skip)
             if not self.convolutional_pooling:
                 x = self.td[d](x)
 
@@ -500,8 +513,8 @@ default_dict = {
     "max_num_epochs": 1000,
     # "net_conv_kernel_sizes": [[1, 3, 3], [1, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]],
     # "net_num_pool_op_kernel_sizes": [[1, 2, 2], [1, 2, 2], [2, 2, 2], [2, 2, 2], [1, 2, 2], [1, 2, 2]],
-    "net_conv_kernel_sizes": [[3, 3], [3, 3], [3, 3], [3, 3], [3, 3], [3, 3]],
-    "net_num_pool_op_kernel_sizes": [[2, 2], [2, 2], [2, 2], [2, 2], [2, 2]],
+    "net_conv_kernel_sizes": [[3, 3], [3, 3], [3, 3], [3, 3], [3, 3], [3, 3], [3, 3]],
+    "net_num_pool_op_kernel_sizes": [[2, 2], [2, 2], [2, 2], [2, 2], [2, 2], [2, 2]],
     "net_pool_per_axis": [2, 6, 6],
     "num_batches_per_epoch": 250,
     "num_classes": 3,
