@@ -2,7 +2,7 @@ import  argparse
 import os
 
 # 只用于在真实数据上进行测试
-dataset = 'for_test_cropped'
+dataset = 'for_test_20250704_checked'
 # CRACK500, CFD
 data_path = os.path.join('../dataset', dataset)
 root_path = '..'

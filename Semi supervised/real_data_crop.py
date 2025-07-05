@@ -65,16 +65,16 @@ if __name__ == "__main__":
     # 1. 定义输入图片路径
     # 请将 'path/to/your/large_image.png' 替换为你的大图的实际路径
     # 建议先放一张测试图片，例如一张1000x800的图片
-    ori_test_data_path = '../dataset/for_test'
+    ori_test_data_path = '../dataset/for_test_20250704/images'
 
     # 2. 定义输出目录
     # 所有切分出来的patch将保存到这个目录
-    output_directory = '../dataset/for_test_cropped'
+    output_directory = '../dataset/for_test_cropped_20250704/images'
 
     # 3. 定义每个patch的尺寸
     # 例如，如果你想把图片切成 256x256 的小块
-    patch_num_x = 2
-    patch_num_y = 2
+    patch_num_x = 10
+    patch_num_y = 8
 
     # --- 创建一个示例大图用于测试 (可选，如果你已经有大图可以跳过这步) ---
     # 这段代码会生成一个 1000x800 的白色图片，你可以用它来测试
