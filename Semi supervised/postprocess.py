@@ -169,7 +169,7 @@ def Inference(args, snapshot_path, net, iternum, mask_range):
     precision = np.max(Precision_list)
     recall = np.max(Recall_list)
     f1 = np.max(F_list)
-    # print (max_threshold_indice)
+    print (max_threshold_indice)
 
 
     # with open(csv_save_path, mode='w') as csv_file:
@@ -189,7 +189,7 @@ def Inference(args, snapshot_path, net, iternum, mask_range):
     return avg_metric, dataset
 
 
-def post_train(args, snapshot_path, new_dataset, model):
+def post_train(args, snapshot_path, new_dataset, model, best_performance=0.0):
 
     origin_dataset_path = '../dataset/CRACK500/'
     base_lr = args.base_lr
@@ -229,13 +229,15 @@ def post_train(args, snapshot_path, new_dataset, model):
     logger.info("post process: {} iterations per epoch".format(len(trainloader)))
 
     iter_num = 0
-    best_performance = 0.0
+    # best_performance = 0.0
+
     a_dice = args.loss_weight[1]
     a_bce = args.loss_weight[0]
     max_epoch = args.epoch_num
     total_iterations = max_epoch * len(trainloader)
     print(total_iterations)
 
+    best_model_state = copy.deepcopy(model.state_dict())
     model.train()
     # iterator = tqdm(range(max_epoch), ncols=70)
 
@@ -354,7 +356,7 @@ def post_train(args, snapshot_path, new_dataset, model):
 
         logger.info(
             'epoch %d, iteration %d, loss : %f, mean_dice : %f, mean_mIoU : %f' % (epoch_num, iter_num, np.mean(loss_list), val_dice, val_mIoU))
-        print ('epoch %d, iteration %d, loss : %f, mean_dice : %f, mean_mIoU : %f' % (epoch_num, iter_num, np.mean(loss_list), val_dice, val_mIoU))
+        # print ('epoch %d, iteration %d, loss : %f, mean_dice : %f, mean_mIoU : %f' % (epoch_num, iter_num, np.mean(loss_list), val_dice, val_mIoU))
         model.train()
 
         if iter_num >= max_iterations:
@@ -369,7 +371,7 @@ def post_train(args, snapshot_path, new_dataset, model):
         #     logger.info("save output to {}".format(save_mode_path))
 
     # print (iter_num)
-    return best_model_state
+    return best_model_state, best_performance
 
 if __name__ == '__main__':
     # FLAGS = parser.parse_args()
@@ -391,23 +393,32 @@ if __name__ == '__main__':
     save_mode_path = os.path.join(
         snapshot_path, '{}_best_model.pth'.format(args.model))
 
+    total_iternum = 40
+    high = 0.8
+    low = 0.1
+    high_step = 0.01
+    save_mode_path_final = os.path.join(
+        snapshot_path, '{}_best_model_final_{},{},{}_new.pth'.format(args.model,total_iternum,high, high_step))
+
     net.load_state_dict(torch.load(save_mode_path))
     print("init weight from {}".format(save_mode_path))
 
-    total_iternum = 40
-    high = 0.8
 
-    low = 0.1
+    net_dict = {}
+    best_miou_per_iter = 0.0
+
     for iternum in range(0, total_iternum+1):
         # threshold_post = high - iternum * ( high - low ) / (total_iternum)
         mask_range = [low, high]
         metric, new_dataset = Inference(args, snapshot_path, net, iternum, mask_range)
-        net_dict = post_train(args, snapshot_path, new_dataset, net)
+        net_dict, best_miou_per_iter = post_train(args, snapshot_path, new_dataset, net, best_performance=best_miou_per_iter)
 
         net.load_state_dict(net_dict)
         # low = low + 0.04
-        high = high - 0
+        if iternum % (total_iternum//10) == 0:
+            high = high - high_step
 
+    torch.save(net_dict, save_mode_path_final)
     metric, new_dataset = Inference(args, snapshot_path, net, total_iternum, [0,0])
 
 

@@ -27,7 +27,6 @@ from configs.config_supervised import args
 # for debug
 # from configs.config_supervised_for_debug import args
 
-from networks.wavelet_diy import HaarWaveletAttention
 
 datasets = ("CRACK500", "DeepCrack")
 
@@ -157,7 +156,7 @@ def Inference(args, snapshot_path):
     # only for fully supervised output
 
 
-    test_save_path = "../output/{}/{}_predictions/{}".format(
+    test_save_path = "../output/{}/{}_predictions_final/{}".format(
         args.exp, args.model, args.dataset)
 
     csv_save_path = os.path.join(test_save_path, "output.csv")

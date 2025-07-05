@@ -31,12 +31,12 @@ from networks.net_factory import net_factory
 from utils import losses, metrics, ramps
 from val import test_single_volume
 
-# from configs.config_supervised import args
+from configs.config_supervised import args
 # from configs.config_supervised_SCSegamba_for_Deepcrack_test import args
 # from configs.config_supervised_deepcrack_test import args
 
 # for debug
-from configs.config_supervised_for_debug import args
+# from configs.config_supervised_for_debug import args
 
 datasets = ("CRACK500", "DeepCrack")
 
@@ -135,8 +135,10 @@ def train(args, snapshot_path):
             outputs = model(volume_batch)
 
             if isinstance(outputs, tuple):
-                outputs = outputs[0]
                 feature_maps = outputs[1:]
+                outputs = outputs[0]
+
+
 
             # outputs_soft = torch.sigmoid(outputs)
             loss_bce = bce_loss(outputs, label_batch.unsqueeze(1))

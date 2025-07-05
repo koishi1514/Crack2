@@ -17,7 +17,7 @@ parser.add_argument('--dataset', type=str,
 parser.add_argument('--exp', type=str,
                     default='debug_crack500', help='experiment_name')
 parser.add_argument('--model', type=str,
-                    default='nnUNet', help='model_name')
+                    default='nnUNet_1', help='model_name')
 # nnUNet 要如此大写
 
 parser.add_argument('--max_iterations', type=int,

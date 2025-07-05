@@ -196,7 +196,7 @@ class Generic_UNet(SegmentationNetwork):
     BASE_NUM_FEATURES_2D = 30
     DEFAULT_BATCH_SIZE_2D = 50
     MAX_NUMPOOL_2D = 999
-    MAX_FILTERS_2D = 480
+    MAX_FILTERS_2D = 512
 
     use_this_for_batch_size_computation_2D = 19739648
     use_this_for_batch_size_computation_3D = 520000000  # 505789440
@@ -309,12 +309,14 @@ class Generic_UNet(SegmentationNetwork):
                                                               self.norm_op_kwargs, self.dropout_op,
                                                               self.dropout_op_kwargs, self.nonlin, self.nonlin_kwargs,
                                                               first_stride, basic_block=basic_block))
-            if not self.convolutional_pooling:
-                self.td.append(pool_op(pool_op_kernel_sizes[d]))
 
-            if d != 0:
-                self.haar_list.append(HaarWavelet(in_channels=input_features, reduction_ratio=2))
-                self.cross_attn.append(Haar_CrossAttention(in_channels=output_features, in_channels_q=input_features, d_model=output_features, num_heads=1))
+            if not self.convolutional_pooling:
+                # self.td.append(pool_op(pool_op_kernel_sizes[d]))
+                self.td.append(HaarWaveletTransform())
+
+            # if d != 0:
+            #     self.haar_list.append(HaarWavelet(in_channels=input_features, reduction_ratio=2))
+            #     self.cross_attn.append(Haar_CrossAttention(in_channels=output_features, in_channels_q=input_features, d_model=output_features, num_heads=1))
 
             input_features = output_features
             output_features = int(
@@ -353,11 +355,15 @@ class Generic_UNet(SegmentationNetwork):
             self.dropout_op_kwargs['p'] = 0.0
 
         # now lets build the localization pathway
+        temp_n_features_after_tu_and_concat = [1024+256, 512+128, 256+64, 128+32, 64+16, 32]
+
         for u in range(num_pool):
             nfeatures_from_down = final_num_features
             nfeatures_from_skip = self.conv_blocks_context[
                 -(2 + u)].output_channels  # self.conv_blocks_context[-1] is bottleneck, so start with -2
-            n_features_after_tu_and_concat = nfeatures_from_skip * 2
+            # n_features_after_tu_and_concat = nfeatures_from_skip * 2
+            n_features_after_tu_and_concat = temp_n_features_after_tu_and_concat[u]
+
 
             # the first conv reduces the number of features to match those of skip
             # the following convs work on that number of features
@@ -411,8 +417,8 @@ class Generic_UNet(SegmentationNetwork):
         self.tu = nn.ModuleList(self.tu)
         self.seg_outputs = nn.ModuleList(self.seg_outputs)
 
-        self.haar_list = nn.ModuleList(self.haar_list)
-        self.cross_attn = nn.ModuleList(self.cross_attn)
+        # self.haar_list = nn.ModuleList(self.haar_list)
+        # self.cross_attn = nn.ModuleList(self.cross_attn)
 
         if self.upscale_logits:
             self.upscale_logits_ops = nn.ModuleList(
@@ -427,28 +433,37 @@ class Generic_UNet(SegmentationNetwork):
 
     def forward(self, x):
         skips = []
+        skips_high = []
         seg_outputs = []
-        haar_feature = False
+
         for d in range(len(self.conv_blocks_context) - 1):
             x = self.conv_blocks_context[d](x)
 
-            if d != 0:
-                x_skip = self.cross_attn[d-1](haar_feature, x)
-            else:
-                x_skip = x
+            # if d != 0:
+            #     x_skip = self.cross_attn[d-1](haar_feature, x)
+            # else:
+            #     x_skip = x
+            #
+            # if d != len(self.conv_blocks_context) - 1 -1:
+            #     haar_feature = self.haar_list[d](x)
 
-            if d != len(self.conv_blocks_context) - 1 -1:
-                haar_feature = self.haar_list[d](x)
+            # skips.append(x_skip)
+            skips.append(x)
 
-            skips.append(x_skip)
             if not self.convolutional_pooling:
-                x = self.td[d](x)
+                x, x_high = self.td[d](x)
+                # x = self.td[d](x)
+                skips_high.append(x_high)
 
         x = self.conv_blocks_context[-1](x)
 
         for u in range(len(self.tu)):
             x = self.tu[u](x)
-            x = torch.cat((x, skips[-(u + 1)]), dim=1)
+            # x = torch.cat((x, skips[-(u + 1)]), dim=1)
+            if u != len(self.tu) - 1:
+                x = torch.cat((x, skips[-(u + 1)], skips_high[-(u + 2)]), dim=1)
+            else:
+                x = torch.cat((x, skips[-(u + 1)]), dim=1)
             x = self.conv_blocks_localization[u](x)
             seg_outputs.append(self.final_nonlin(self.seg_outputs[u](x)))
 
@@ -550,7 +565,7 @@ def initialize_network(threeD=True, num_classes=2):
                            dropout_op_kwargs,
                            net_nonlin, net_nonlin_kwargs, True, False, lambda x: x, InitWeights_He(
         1e-2),
-        default_dict["net_num_pool_op_kernel_sizes"], default_dict["net_conv_kernel_sizes"], False, True, True)
+        default_dict["net_num_pool_op_kernel_sizes"], default_dict["net_conv_kernel_sizes"], False, False, True)
     print("nnUNet have {} paramerters in total".format(
         sum(x.numel() for x in network.parameters())))
     return network.cuda()
