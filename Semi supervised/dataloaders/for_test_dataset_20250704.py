@@ -16,6 +16,7 @@ import json
 import matplotlib.pyplot as plt
 from PIL import Image
 import math
+from dataloaders.dataloader_utils import get_img_filenames
 
 def blur(img, p=0.5):
     if random.random() < p:
@@ -77,11 +78,6 @@ def StrongAugment(sample):
     sample = {"image": image, "label": label}
     return sample
 
-def preprocess(img_dir):
-    img_files = [file for file in os.listdir(img_dir) if file.endswith('.png')]
-
-    return sorted(img_files)
-
 
 class BaseDataSets(Dataset):
     def __init__(
@@ -102,7 +98,7 @@ class BaseDataSets(Dataset):
         self.pseudo_labeled_name = []
 
         self.img_data_dir = self._base_dir
-        self.img_path_list = preprocess(self.img_data_dir)
+        self.img_path_list = get_img_filenames(self.img_data_dir, '.jpg')
 
         if transform == 'weak':
             self.transform = transforms.Compose([
@@ -237,6 +233,7 @@ def color_jitter(image):
     s = 1.0
     jitter = transforms.ColorJitter(0.8 * s, 0.8 * s, 0.8 * s, 0.2 * s)
     return jitter(image)
+
 
 
 

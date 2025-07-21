@@ -1,7 +1,7 @@
 import  argparse
 import os
 
-dataset = 'DeepCrack'
+dataset = 'for_test_cropped_20250704_checked'
 # CRACK500, CFD, DeepCrack
 data_path = os.path.join('../dataset', dataset)
 root_path = '..'
@@ -15,9 +15,9 @@ parser.add_argument('--data_path', type=str,
 parser.add_argument('--dataset', type=str,
                     default=dataset, help='Name of Dataset')
 parser.add_argument('--exp', type=str,
-                    default='crack500_trained_ep80_bs8_lrsch_edited', help='experiment_name')
+                    default='test1', help='experiment_name')
 parser.add_argument('--model', type=str,
-                    default='nnUNet_1', help='model_name')
+                    default='nnUNet', help='model_name')
 # nnUNet 要如此大写
 
 parser.add_argument('--max_iterations', type=int,
@@ -28,7 +28,7 @@ parser.add_argument('--batch_size', type=int, default=8,
                     help='batch_size per gpu')
 parser.add_argument('--deterministic', type=int,  default=1,
                     help='whether use deterministic training')
-parser.add_argument('--base_lr', type=float,  default=0.01,
+parser.add_argument('--base_lr', type=float,  default=0.005,
                     help='segmentation network learning rate')
 parser.add_argument('--weight_decay', type=float,  default=0.0001,
                     help='weight decay')

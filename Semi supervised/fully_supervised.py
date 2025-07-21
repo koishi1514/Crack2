@@ -24,7 +24,6 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from tqdm import tqdm
 from torch.optim import lr_scheduler
-from dataloaders import utils
 
 
 from networks.net_factory import net_factory
@@ -100,7 +99,7 @@ def train(args, snapshot_path):
     # optimizer = optim.Adam(model.parameters(), lr=base_lr)
 
     optimizer = optim.AdamW(model.parameters(), lr=base_lr, weight_decay=weight_decay)
-    # scheduler = lr_scheduler.CosineAnnealingWarmRestarts(optimizer=optimizer, T_0=10, T_mult=2)
+    scheduler = lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=args.epoch_num * len(trainloader), eta_min=1e-6)
 
 
     ce_loss = CrossEntropyLoss()
@@ -159,10 +158,10 @@ def train(args, snapshot_path):
             loss.backward()
             optimizer.step()
 
-            lr_ = base_lr * (1.0 - iter_num / total_iterations) ** 0.9
-            for param_group in optimizer.param_groups:
-                param_group['lr'] = lr_
-            # scheduler.step()
+            # lr_ = base_lr * (1.0 - iter_num / total_iterations) ** 0.9
+            # for param_group in optimizer.param_groups:
+            #     param_group['lr'] = lr_
+            scheduler.step()
 
             iter_num = iter_num + 1
             # writer.add_scalar('info/lr', lr_, iter_num)
@@ -255,8 +254,7 @@ if __name__ == "__main__":
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
 
-    snapshot_path = "../output/{}/{}".format(
-        args.exp, args.model)
+    snapshot_path = "../output/{}/{}".format(args.exp, args.model)
 
     if not os.path.exists(snapshot_path):
         os.makedirs(snapshot_path)

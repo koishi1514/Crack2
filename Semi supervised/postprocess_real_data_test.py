@@ -30,8 +30,7 @@ import cv2
 
 # from configs.config_supervised import args
 # from configs.config_supervised_SCSegamba_for_Deepcrack_test import args
-# from configs.config_supervised_post_training_real_data import args
-from configs.config_supervised_post_training import args
+from configs.config_supervised_post_training_real_data import args
 from dataloaders.CRACK500_labeled import BaseDataSets as BaseDataSets_origin
 from test import draw_sem_seg_by_cv2_sum
 
@@ -39,8 +38,8 @@ from test import draw_sem_seg_by_cv2_sum
 datasets = ("CRACK500", "DeepCrack")
 
 try:
-    import_dataset_name = "dataloaders."+args.dataset+"_labeled"
-    # import_dataset_name = "dataloaders.real_data_20250704"
+    # import_dataset_name = "dataloaders."+args.dataset+"_labeled"
+    import_dataset_name = "dataloaders.real_data_20250704"
     dataset_py = importlib.import_module(import_dataset_name)
     BaseDataSets = getattr(dataset_py, "BaseDataSets")
 
@@ -78,14 +77,14 @@ def test_single_volume(case, net, test_save_path=None, args=None):
 
     return metric_single_img, single_pred, single_label
 
-def Inference(args, save_path, net, iternum, mask_range, need_save=False):
+def Inference(args, snapshot_path, net, iternum, mask_range):
 
     # only for fully supervised output
 
-
-    test_save_path = save_path
-    # test_save_path_th = "../output/{}/{}_predictions/post_train_th".format(
-    #     args.exp, args.model, args.dataset)
+    test_save_path = "../output/{}/{}_predictions/post_train".format(
+        args.exp, args.model, args.dataset)
+    test_save_path_th = "../output/{}/{}_predictions/post_train_th".format(
+        args.exp, args.model, args.dataset)
 
     csv_save_path = os.path.join(test_save_path, "output.csv")
 
@@ -93,6 +92,8 @@ def Inference(args, save_path, net, iternum, mask_range, need_save=False):
     #     shutil.rmtree(test_save_path)
     if not os.path.exists(test_save_path):
         os.makedirs(test_save_path)
+    if not os.path.exists(test_save_path_th):
+        os.makedirs(test_save_path_th)
 
     net.eval()
 
@@ -136,30 +137,41 @@ def Inference(args, save_path, net, iternum, mask_range, need_save=False):
         # pred_crf_list.append(pred_crf)
 
         # 改为人工选取阈值（暂时）
-        pred_post = pred.copy()
-        pred_post[pred_post >= mask_range[1]] = 1
-        pred_post[pred_post <= mask_range[0]] = 0
-        mask = np.where((pred >= mask_range[1]) | (pred <= mask_range[0]), 1, 0)
+        # pred_post = pred.copy()
+        # pred_post[pred_post >= mask_range[1]] = 1
+        # pred_post[pred_post <= mask_range[0]] = 0
+        # mask = np.where((pred >= mask_range[1]) | (pred <= mask_range[0]), 1, 0)
+        mask = np.ones_like(image)
         # print(mask.sum())
         mask_list.append(mask)
-        pred_post_list.append(pred_post)
+        # pred_post_list.append(pred_post)
 
-        if need_save:
-            image_out = image
-            palette = [[255, 255, 255],[37, 143, 36], [178, 48, 0], [178, 151, 0]]
-            draw_output = draw_sem_seg_by_cv2_sum(image_out, label, pred, palette)
-            draw_output = cv2.cvtColor(draw_output.transpose(1,2,0), cv2.COLOR_RGB2BGR)
-            out_dir =  os.path.join(test_save_path, name[:-4]+'.png')
-            cv2.imwrite(out_dir, draw_output)
+        # image_out = image
+        # palette = [[255, 255, 255],[37, 143, 36], [178, 48, 0], [178, 151, 0]]
+        # draw_output = draw_sem_seg_by_cv2_sum(image_out, label, pred, palette)
+        # draw_output = cv2.cvtColor(draw_output.transpose(1,2,0), cv2.COLOR_RGB2BGR)
+        # out_dir =  os.path.join(test_save_path, name[:-4]+'.png')
+        # cv2.imwrite(out_dir, draw_output)
+        #
+        # draw_output = draw_sem_seg_by_cv2_sum(image_out, label, pred_post, palette)
+        # draw_output = cv2.cvtColor(draw_output.transpose(1,2,0), cv2.COLOR_RGB2BGR)
+        # out_dir =  os.path.join(test_save_path_th, name[:-4]+'.png')
+        # cv2.imwrite(out_dir, draw_output)
 
-            # draw_output = draw_sem_seg_by_cv2_sum(image_out, label, pred_post, palette)
-            # draw_output = cv2.cvtColor(draw_output.transpose(1,2,0), cv2.COLOR_RGB2BGR)
-            # out_dir =  os.path.join(test_save_path, name[:-4]+'.png')
-            # cv2.imwrite(out_dir, draw_output)
 
+    paired_data = list(zip(metric_per_img_list, name_list, image_list, label_list))
+    sorted_paired_data = sorted(paired_data, key=lambda item: item[0][2])
+    num_items = len(sorted_paired_data)
+    num_to_keep = int (num_items * mask_range)
+    filtered_paired_data = sorted_paired_data[num_to_keep:]
+    name_list1 = [item[1] for item in filtered_paired_data]
+    image_list1 = [item[2] for item in filtered_paired_data]
+    label_list1 = [item[3] for item in filtered_paired_data]
+    mask_list1 = mask_list[num_to_keep:]
 
     avg_metric = first_total / test_num
-    dataset = NewDataSets(img_list=image_list, label_list=pred_post_list, name_list=name_list, mask_list=mask_list, real_label_list = label_list, transform=None, split='train')
+
+    dataset = NewDataSets(img_list=image_list1, label_list=label_list1, name_list=name_list1, mask_list=mask_list1, real_label_list = label_list1, transform=None, split='train')
 
     final_accuracy_all = metrics.cal_prf_metrics_all(pred_list, label_list)
     final_accuracy_all = np.array(final_accuracy_all)
@@ -194,7 +206,6 @@ def post_train(args, snapshot_path, new_dataset, model, best_performance=0.0):
 
     origin_dataset_path = '../dataset/CRACK500/'
     base_lr = args.base_lr
-    print(base_lr)
     weight_decay = args.weight_decay
     num_classes = args.num_classes
     batch_size = args.batch_size
@@ -382,17 +393,11 @@ if __name__ == '__main__':
     log_path = os.path.join(snapshot_path, 'post')
     saved_mode_path = os.path.join(snapshot_path, '{}_best_model.pth'.format(args.model))
 
-    total_iternum = 80
-    high = 0.8
-    low = 0.1
-    high_step = 0.02
-
     # logger settings
     global logger
     logger = logging.getLogger("my_logger")
     logger.setLevel(logging.DEBUG)
-    file_handler = logging.FileHandler(os.path.join(log_path ,'{}_best_model_final_{}iters,{},{}.txt')\
-                                       .format(args.model,total_iternum,high, high_step))
+    file_handler = logging.FileHandler(os.path.join(log_path ,'log.txt'))
     file_handler.setLevel(logging.DEBUG)
     file_formatter = logging.Formatter('%(asctime)s - %(message)s')
     file_handler.setFormatter(file_formatter)
@@ -404,29 +409,29 @@ if __name__ == '__main__':
     net.load_state_dict(torch.load(saved_mode_path))
     print("init weight from {}".format(saved_mode_path))
 
+    total_iternum = 50
+    confidence_th = 0.5
+    step = 0.01
 
     save_mode_path = os.path.join(
-        snapshot_path, 'post', '{}_best_model_final_{}iters,{},{}.pth'.format(args.model,total_iternum,high, high_step))
-    save_path = os.path.join("../output/{}/{}_predictions".format(args.exp, args.model), '{}iters,{},{}'\
-                                       .format(args.model,total_iternum,high, high_step) )
+        snapshot_path, 'post', '{}_best_model_final_{}iters,{},{}.pth'.format(args.model,total_iternum, confidence_th, step))
 
     net_dict = {}
     best_miou_per_iter = 0.0
 
     for iternum in range(0, total_iternum+1):
         # threshold_post = high - iternum * ( high - low ) / (total_iternum)
-        mask_range = [low, high]
-        metric, new_dataset = Inference(args, snapshot_path, net, iternum, mask_range)
+
+        metric, new_dataset = Inference(args, snapshot_path, net, iternum, confidence_th)
         net_dict, best_miou_per_iter = post_train(args, snapshot_path, new_dataset, net, best_performance=best_miou_per_iter)
 
         net.load_state_dict(net_dict)
         # low = low + 0.04
-        if iternum % (total_iternum//10) == 0:
-            high = high - high_step
-            args.base_lr = args.base_lr * 0.8
+
+        confidence_th = confidence_th - step
 
     torch.save(net_dict, save_mode_path)
-    metric, new_dataset = Inference(args, save_path, net, total_iternum, [0,0], need_save=True)
+    metric, new_dataset = Inference(args, snapshot_path, net, total_iternum, 0)
 
 
 

@@ -16,71 +16,7 @@ import json
 import matplotlib.pyplot as plt
 from PIL import Image
 import math
-
-def blur(img, p=0.5):
-    if random.random() < p:
-        sigma = np.random.uniform(0.1, 2.0)
-        # img = img.filter(ImageFilter.GaussianBlur(radius=sigma))
-        blur = transforms.GaussianBlur(kernel_size=5, sigma=sigma)
-        img = blur(img)
-    return img
-
-
-def cutout(img, mask, p=0.5, size_min=0.02, size_max=0.4, ratio_1=0.3,
-           ratio_2=1/0.3, value_min=0, value_max=255, pixel_level=True):
-    if random.random() < p:
-        # img = np.array(img)
-        # mask = np.array(mask)
-
-        img_h, img_w, img_c = img.shape
-
-        while True:
-            size = np.random.uniform(size_min, size_max) * img_h * img_w
-            ratio = np.random.uniform(ratio_1, ratio_2)
-            erase_w = int(np.sqrt(size / ratio))
-            erase_h = int(np.sqrt(size * ratio))
-            x = np.random.randint(0, img_w)
-            y = np.random.randint(0, img_h)
-
-            if x + erase_w <= img_w and y + erase_h <= img_h:
-                break
-
-        if pixel_level:
-            # value = np.random.uniform(value_min, value_max, (erase_h, erase_w, img_c))
-            value = torch.empty(erase_h, erase_w, img_c).uniform_(value_min, value_max)
-        else:
-            # value = np.random.uniform(value_min, value_max)
-            value = torch.empty(1).uniform_(value_min, value_max)
-
-        img[y:y + erase_h, x:x + erase_w] = value
-        mask[y:y + erase_h, x:x + erase_w] = 1
-
-        # img = Image.fromarray(img.astype(np.uint8))
-        # mask = Image.fromarray(mask.astype(np.uint8))
-
-    return img, mask
-
-def StrongAugment(sample):
-    image, label = sample["image"], sample["label"]
-
-    if not torch.is_tensor(image):
-        np_to_tensor = transforms.ToTensor()
-        image = np_to_tensor(image)
-
-    if random.random() < 0.8:
-        image = transforms.ColorJitter(0.5, 0.5, 0.5, 0.25)(image)
-    image = transforms.RandomGrayscale(p=0.2)(image)
-    image = blur(image, p=0.5)
-    image, label = cutout(image, label, p=0.5)
-    image = image.type(torch.float32)
-    label = label.type(torch.uint8)
-    sample = {"image": image, "label": label}
-    return sample
-
-def preprocess(img_dir):
-    img_files = [file for file in os.listdir(img_dir) if file.endswith('.png')]
-
-    return sorted(img_files)
+from dataloaders.dataloader_utils import get_img_filenames
 
 
 class BaseDataSets(Dataset):
@@ -101,8 +37,28 @@ class BaseDataSets(Dataset):
         # self.reliable_path = os.path.join(self._base_dir, "reliable_name.json")
         self.pseudo_labeled_name = []
 
-        self.img_data_dir = self._base_dir
-        self.img_path_list = preprocess(self.img_data_dir)
+
+        # self.name_json_path = os.path.join(self._base_dir, "name.json")
+        # self.split_json_path = os.path.join(self._base_dir, "frame_split_{}.json".format(labeled_num) )
+
+        # with open(self.name_json_path, 'r') as f:
+        #     name_json = json.load(f)
+        # self.sample_name = name_json['file_name']
+        # self.sample_idx = self.sample_idx_labeled + self.sample_idx_unlabeled
+
+
+        # with open(self.split_json_path, 'r') as f1:
+        #     self.split_json = json.load(f1) # number idx
+        # self.img_data_dir = os.path.join(self._base_dir, "train"+"_img")
+        # self.label_dir = os.path.join(self._base_dir, "train"+"_lab")
+        self.img_data_dir = os.path.join(self._base_dir, "images")
+        self.label_dir = os.path.join(self._base_dir, "binary_labels")
+        self.label_dir_1 = os.path.join(self._base_dir, "labels")
+
+        self.img_path_list = get_img_filenames(self.img_data_dir, '.jpg')
+        self.mask_path_list = get_img_filenames(self.label_dir, '.jpg')
+        self.mask_path_list_1 = get_img_filenames(self.label_dir_1, '.jpg')
+
 
         if transform == 'weak':
             self.transform = transforms.Compose([
@@ -161,11 +117,35 @@ class BaseDataSets(Dataset):
     def __getitem__(self, idx):
 
         image_path = self.img_path_list[idx]
-        mask_path = self.img_path_list[idx]
+        mask_path = self.mask_path_list[idx]
+        # mask1_path = self.mask_path_list_1[idx]
 
         image = Image.open(os.path.join(self.img_data_dir, image_path))
+        mask = Image.open(os.path.join(self.label_dir, mask_path))
+        # mask1 = Image.open(os.path.join(self.label_dir_1, mask1_path))
+
+        mask_np = np.array(mask) # mask_np 的形状会是 (height, width, 3)
+
+        # 3. 分离 RGB 通道
+        R = mask_np[:, :, 0] # 红色通道
+        G = mask_np[:, :, 1] # 绿色通道
+        B = mask_np[:, :, 2] # 蓝色通道
+        red_threshold = 150
+        color_dominance_margin = 30
+
+        is_red_pixel = (R > red_threshold) & \
+                       (R > G + color_dominance_margin) & \
+                       (R > B + color_dominance_margin)
+        extracted_red_mask_np = np.zeros_like(R, dtype=np.uint8)
+
+        #    将符合“红色”条件的像素设置为白色 (255)
+        extracted_red_mask_np[is_red_pixel] = 255
+
+        # 6. 将 NumPy 数组转换回 PIL 图像的 'L' 模式 (灰度图)
+        mask = Image.fromarray(extracted_red_mask_np, 'L')
 
         sample = {}
+
 
         # if image.size()[0] > image.size()[1]:
         #     image = torch.transpose(image, 1, 2)
@@ -173,9 +153,9 @@ class BaseDataSets(Dataset):
 
         # image1 = np.array(image)
         # mask1 = np.array(mask)
-        image = self.transform(image)
-        if image.shape[0] == 1:
-            image = torch.cat([image] * 3, dim=0)
+        image, mask = self.transform(image, mask)
+        # mask1 = self.transform(mask1)
+
 
         # image1 = transforms.ToPILImage()(image)
         # mask1 = transforms.ToPILImage()(mask)
@@ -184,14 +164,13 @@ class BaseDataSets(Dataset):
         # print(2)
 
         # fig, axes = plt.subplots(2, 2, figsize=(12, 6))
-        # axes[0][0].imshow(image1)
+        #
+        # axes[0][0].imshow(image.permute((1, 2, 0)))
         # axes[0][0].axis('off')
-        # axes[0][1].imshow(image.permute((1, 2, 0)))
-        # axes[0][1].axis('off')
-        # axes[1][0].imshow(mask1)
+        # axes[1][0].imshow(mask1.permute((1, 2, 0)))
         # axes[1][0].axis('off')
-        # axes[1][1].imshow(mask.permute((1, 2, 0)))
-        # axes[1][1].axis('off')
+        # axes[0][1].imshow(mask.permute((1, 2, 0)), cmap ='grey')
+        # axes[0][1].axis('off')
         # plt.tight_layout()
         # plt.show()
         # plt.close()
@@ -202,7 +181,7 @@ class BaseDataSets(Dataset):
         # sample = StrongAugment(sample)
 
         sample["image"] = image
-        # sample["label"] = mask
+        sample["label"] = mask
         sample["idx"] = idx
         sample["name"] = image_path
         return sample
@@ -241,6 +220,42 @@ def color_jitter(image):
 
 
 
+def worker_init_fn(worker_id):
+    random.seed(args.seed + worker_id)
+
+if __name__ == '__main__':
+
+    from configs.config_supervised_real_data_test import args
+    from torch.utils.data import DataLoader
+
+    data_path = os.path.join('..',args.data_path)
+    out_path = os.path.join('..', 'testout')
+    batch_size = 10
+
+    # split_json_path = os.path.join(root_path, "frame_split.json")
+    # with open(split_json_path, 'r') as f:
+    #     split_dict = json.load(f)
+
+
+    db_train = BaseDataSets(base_dir=data_path, split="train", transform=None)
+    trainloader = DataLoader(db_train, batch_size = batch_size, shuffle=False,
+                             num_workers=0, pin_memory=True, worker_init_fn=worker_init_fn, drop_last=False)
+
+    for i_batch, sampled_batch in enumerate(trainloader):
+        # pass
+        volume_batch, label_batch = sampled_batch['image'], sampled_batch['label']
+        # print(volume_batch.shape,label_batch.shape)
+
+        # print(i_batch, sampled_batch['name'])
+
+
+    # db_val = BaseDataSets(base_dir=root_path, split="val")
+    # db_test = BaseDataSets(base_dir=root_path, split="test")
+    # db_retrain_st = BaseDataSets(base_dir=root_path, split="retrain", num=None, transform=transforms.Compose([
+    #     RandomGenerator(args.patch_size)]), addition = 'all')
+    #
+    # db_retrain_st_plus = BaseDataSets(base_dir=root_path, split="retrain", num=None, transform=transforms.Compose([
+    #     RandomGenerator(args.patch_size)]), addition = 'reliable')
 
 
 

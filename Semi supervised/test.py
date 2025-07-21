@@ -156,7 +156,7 @@ def Inference(args, snapshot_path):
     # only for fully supervised output
 
 
-    test_save_path = "../output/{}/{}_predictions_final/{}".format(
+    test_save_path = "../output/{}/{}_predictions/{}".format(
         args.exp, args.model, args.dataset)
 
     csv_save_path = os.path.join(test_save_path, "output.csv")

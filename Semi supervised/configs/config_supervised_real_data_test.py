@@ -2,7 +2,7 @@ import  argparse
 import os
 
 # 只用于在真实数据上进行测试
-dataset = 'for_test_20250704_checked'
+dataset = 'for_test_cropped_20250704_checked'
 # CRACK500, CFD
 data_path = os.path.join('../dataset', dataset)
 root_path = '..'
@@ -18,7 +18,7 @@ parser.add_argument('--dataset', type=str,
 parser.add_argument('--exp', type=str,
                     default='test1', help='experiment_name')
 parser.add_argument('--model', type=str,
-                    default='nnUNet', help='model_name')
+                    default='nnUNet_1', help='model_name')
 
 parser.add_argument('--max_iterations', type=int,
                     default=30000, help='maximum epoch number to train')
