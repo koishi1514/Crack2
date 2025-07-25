@@ -65,11 +65,11 @@ if __name__ == "__main__":
     # 1. 定义输入图片路径
     # 请将 'path/to/your/large_image.png' 替换为你的大图的实际路径
     # 建议先放一张测试图片，例如一张1000x800的图片
-    ori_test_data_path = '../dataset/for_test_20250704/images'
+    ori_test_data_path = '../../dataset/for_test_20250704/KNet-result'
 
     # 2. 定义输出目录
     # 所有切分出来的patch将保存到这个目录
-    output_directory = '../dataset/for_test_cropped_20250704/images'
+    output_directory = '../../dataset/for_test_cropped_20250704/binary_labels'
 
     # 3. 定义每个patch的尺寸
     # 例如，如果你想把图片切成 256x256 的小块
