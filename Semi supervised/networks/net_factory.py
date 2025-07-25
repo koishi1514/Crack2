@@ -6,6 +6,7 @@ import argparse
 from networks.config import get_config
 from networks.nnunet import initialize_network
 from networks.nnunet_1 import initialize_network as initialize_network1
+from networks.nnunet_2 import initialize_network as initialize_network2
 from networks.crackformerII import crackformer
 from networks.crackmer.Net import crackmer
 from networks.CTCrackseg.TransMUNet import TransMUNet
@@ -34,6 +35,8 @@ def net_factory(net_type="unet", in_chns=1, class_num=3, args=None):
         net = initialize_network(threeD=False, num_classes=class_num).cuda()
     elif net_type == "nnUNet_1":
         net = initialize_network1(threeD=False, num_classes=class_num).cuda()
+    elif net_type == "nnUNet_2":
+        net = initialize_network2(threeD=False, num_classes=class_num).cuda()
     elif net_type == "crackformer":
         net = crackformer(in_channels=in_chns, final_hidden_dims=64, num_classes=class_num).cuda()
     # elif net_type == "SCSegamba":

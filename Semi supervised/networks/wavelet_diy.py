@@ -85,13 +85,17 @@ class HaarWavelet(nn.Module):
 
         branch1_out = self.branch1(fused_input)  # (B, C)
         branch1_out = branch1_out.unsqueeze(-1).unsqueeze(-1) # (B, C, 1, 1)
-        branch2_out = self.branch2(fused_input)  # (B, C, H/2, W/2)
+        # branch2_out = self.branch2(fused_input)  # (B, C, H/2, W/2)
+        branch2_out = fused_input
         attention_weights = self.sigmoid(branch1_out + branch2_out)
 
 
-        output = high_f * attention_weights + low_f
 
-        return output
+        # output = high_f * attention_weights + low_f
+        high_f = high_f * attention_weights
+        low_f = low_f
+
+        return low_f, high_f
 
 class Haar_CrossAttention(nn.Module):
     def __init__(self, in_channels, in_channels_q, d_model, num_heads=1):

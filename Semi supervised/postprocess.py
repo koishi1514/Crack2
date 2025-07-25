@@ -408,7 +408,7 @@ if __name__ == '__main__':
     save_mode_path = os.path.join(
         snapshot_path, 'post', '{}_best_model_final_{}iters,{},{}.pth'.format(args.model,total_iternum,high, high_step))
     save_path = os.path.join("../output/{}/{}_predictions".format(args.exp, args.model), '{}iters,{},{}'\
-                                       .format(args.model,total_iternum,high, high_step) )
+                                       .format(total_iternum,high, high_step) )
 
     net_dict = {}
     best_miou_per_iter = 0.0

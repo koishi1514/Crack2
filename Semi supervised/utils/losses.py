@@ -299,3 +299,14 @@ def masked_dice_loss(output, target, mask):
     masked_dice = dice * mask.sum(dim=(2, 3))  # 对每个样本的掩码区域进行求和
 
     return 1 - masked_dice.mean()  # 对整个批次求平均
+
+
+if __name__ == "__main__":
+    # Example usage
+    input_tensor = np.array([0,1,2],[1,2,3],[2,3,4])
+    target_tensor = torch.randint(0, 2, (2, 3, 4, 4))  # Example target tensor
+    mask_tensor = torch.randint(0, 2, (2, 1, 4, 4))  # Example mask tensor
+
+    loss = masked_bce_loss(input_tensor, target_tensor.float(), mask_tensor.float())
+    print("Masked BCE Loss:", loss.item())
+
