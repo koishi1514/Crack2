@@ -1,7 +1,7 @@
 import  argparse
 import os
 
-dataset = 'CRACK500'
+dataset = 'CrackTree'  # 可选值：cracktree, CRACK500, CFD, DeepCrack
 # CRACK500, CFD, DeepCrack
 data_path = os.path.join('../dataset', dataset)
 root_path = '..'
@@ -15,9 +15,9 @@ parser.add_argument('--data_path', type=str,
 parser.add_argument('--dataset', type=str,
                     default=dataset, help='Name of Dataset')
 parser.add_argument('--exp', type=str,
-                    default='debug_crack500', help='experiment_name')
+                    default='debug_cracktree', help='experiment_name')
 parser.add_argument('--model', type=str,
-                    default='nnUNet_1', help='model_name')
+                    default='nnUNet_2', help='model_name')
 # nnUNet 要如此大写
 
 parser.add_argument('--max_iterations', type=int,

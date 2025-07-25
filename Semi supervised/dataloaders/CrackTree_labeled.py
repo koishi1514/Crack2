@@ -78,7 +78,7 @@ def StrongAugment(sample):
     return sample
 
 def preprocess(img_dir, label_dir):
-    jpg_files = [file for file in os.listdir(img_dir) if file.endswith('.jpg')]
+    jpg_files = [file for file in os.listdir(img_dir) if file.endswith('.jpg') or file.endswith('.JPG')]
     png_files = [file for file in os.listdir(label_dir) if file.endswith('.bmp')]
     return sorted(jpg_files), sorted(png_files)
 
