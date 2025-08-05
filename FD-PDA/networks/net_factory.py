@@ -15,7 +15,6 @@ from networks.SimCrack.consnet import ConsNet
 from networks.DTrCNet.CTCNet import CTCNet
 from networks.DeeplabV3.modeling import deeplabv3plus_resnet50
 from networks.deepcrack import DeepCrack
-# from models.decoder import build
 
 
 def net_factory(net_type="unet", in_chns=1, class_num=3, args=None):
@@ -44,11 +43,8 @@ def net_factory(net_type="unet", in_chns=1, class_num=3, args=None):
         net = initialize_network3(threeD=False, num_classes=class_num).cuda()
     elif net_type == "crackformer":
         net = crackformer(in_channels=in_chns, final_hidden_dims=64, num_classes=class_num).cuda()
-    # elif net_type == "SCSegamba":
-    #     net, _ = build(args=None)
-    #     net = net.cuda()
     elif net_type == "crackmer":
-        # 难以训练，暂时弃用
+        # hard to train, not recommended
         net = crackmer(in_channels=in_chns, final_hidden_dims=64, num_classes=class_num).cuda()
     elif net_type == "CTCrackseg":
         net = TransMUNet(n_classes=class_num).cuda()
