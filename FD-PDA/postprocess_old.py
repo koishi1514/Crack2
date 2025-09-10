@@ -32,7 +32,6 @@ import cv2
 # from configs.config_supervised_SCSegamba_for_Deepcrack_test import args
 # from configs.config_supervised_post_training_real_data import args
 from configs.config_supervised_post_training import args
-from configs.config_supervised_post_training_deepcrack2crack500 import args
 from dataloaders.CRACK500_labeled import BaseDataSets as BaseDataSets_origin
 from test import draw_sem_seg_by_cv2_sum
 
@@ -104,7 +103,7 @@ def Inference(args, save_path, net, iternum, mask_range, need_save=False):
 
     test_num = len(testloader)
     pbar = tqdm(testloader)
-    # print (len(testloader))
+    print (len(testloader))
 
     image_list = []
     label_list = []
@@ -199,13 +198,11 @@ def post_train(args, snapshot_path, new_dataset, model, best_performance=0.0):
 
     origin_dataset_path = '../dataset/CRACK500/'
     base_lr = args.base_lr
-    # print(base_lr)
+    print(base_lr)
     weight_decay = args.weight_decay
     num_classes = args.num_classes
     batch_size = args.batch_size
     max_iterations = args.max_iterations
-    alpha = args.loss_trade_off[0]
-    beta = args.loss_trade_off[1]
     # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
@@ -222,7 +219,7 @@ def post_train(args, snapshot_path, new_dataset, model, best_performance=0.0):
     # else:
     #     db_val = BaseDataSets(base_dir=args.data_path, split="val", transform=None)
     trainloader_origin = DataLoader(db_train_origin, batch_size = args.batch_size, shuffle=True,
-                             num_workers=0, pin_memory=True, worker_init_fn=worker_init_fn, drop_last=True)
+                                    num_workers=0, pin_memory=True, worker_init_fn=worker_init_fn, drop_last=True)
     trainloader = DataLoader(db_train, batch_size = args.batch_size, shuffle=True,
                              num_workers=0, pin_memory=True, worker_init_fn=worker_init_fn, drop_last=True)
     valloader = DataLoader(db_val, batch_size=1, shuffle=False, num_workers=0)
@@ -244,7 +241,7 @@ def post_train(args, snapshot_path, new_dataset, model, best_performance=0.0):
     a_bce = args.loss_weight[0]
     max_epoch = args.epoch_num
     total_iterations = max_epoch * len(trainloader)
-    print(total_iterations, alpha, beta)
+    print(total_iterations)
 
     best_model_state = copy.deepcopy(model.state_dict())
     model.train()
@@ -301,8 +298,7 @@ def post_train(args, snapshot_path, new_dataset, model, best_performance=0.0):
             supervised_loss_1 = a_dice * loss_dice + a_bce * loss_bce
             supervised_loss_old = a_dice * loss_dice_1 + a_bce * loss_bce_1
 
-            supervised_loss = alpha * supervised_loss_ori + beta * supervised_loss_1
-            # supervised_loss = 0.3 * supervised_loss_ori + 0.7 * supervised_loss_1
+            supervised_loss = 0.3 * supervised_loss_ori + 0.7 * supervised_loss_1
 
             loss = supervised_loss
             loss_list.append(loss.item())
@@ -393,20 +389,18 @@ if __name__ == '__main__':
     total_iternum = 60
     high = 0.8
     low = 0.1
-    high_step = 0.02
+    high_step = 0.01
 
     # logger settings
     global logger
     logger = logging.getLogger("my_logger")
     logger.setLevel(logging.DEBUG)
-    file_handler = logging.FileHandler(os.path.join(log_path ,'{}_final_{}_{}iters,th:({},-{}),ab:({}:{})_1.txt')\
-                                       .format(args.model,args.dataset,total_iternum,high, high_step,
-                                               args.loss_trade_off[0], args.loss_trade_off[1]))
+    file_handler = logging.FileHandler(os.path.join(log_path ,'{}_best_model_final_{}_{}iters,{},{},0.3:0.7.txt') \
+                                       .format(args.model,args.dataset,total_iternum,high, high_step))
     file_handler.setLevel(logging.DEBUG)
     file_formatter = logging.Formatter('%(asctime)s - %(message)s')
     file_handler.setFormatter(file_formatter)
     logger.addHandler(file_handler)
-    logger.info(str(args))
 
     # weight loading
     net = net_factory(net_type=args.model, in_chns=3,
@@ -415,19 +409,16 @@ if __name__ == '__main__':
     print("init weight from {}".format(saved_mode_path))
 
 
-    save_mode_path = os.path.join(snapshot_path, 'post', '{}_{}iters,th:({},-{}),ab:({}:{})_1.pth' \
-                                  .format(args.dataset, total_iternum,high, high_step,
-                                          args.loss_trade_off[0], args.loss_trade_off[1]))
-    save_path = os.path.join("../output/{}/{}_predictions".format(args.exp, args.model), '{}_{}iters,th:({},-{}),ab:({}:{})_1'\
-                                       .format(args.dataset, total_iternum,high, high_step,
-                                               args.loss_trade_off[0], args.loss_trade_off[1]) )
+    save_mode_path = os.path.join(
+        snapshot_path, 'post', '{}_best_model_final_{}_{}iters,{},{},0.3:0.7.pth'.format(args.model,args.dataset,total_iternum,high, high_step))
+    save_path = os.path.join("../output/{}/{}_predictions".format(args.exp, args.model), '{}_{}iters,{},{},0.3:0.7' \
+                             .format(args.dataset, total_iternum,high, high_step) )
 
     net_dict = {}
     best_miou_per_iter = 0.0
 
     for iternum in range(0, total_iternum+1):
         # threshold_post = high - iternum * ( high - low ) / (total_iternum)
-        print(("post training iter {}, threshold range: ({}, {})").format(iternum, low, high))
         mask_range = [low, high]
         metric, new_dataset = Inference(args, snapshot_path, net, iternum, mask_range)
         net_dict, best_miou_per_iter = post_train(args, snapshot_path, new_dataset, net, best_performance=best_miou_per_iter)
@@ -440,7 +431,6 @@ if __name__ == '__main__':
 
     torch.save(net_dict, save_mode_path)
     metric, new_dataset = Inference(args, save_path, net, total_iternum, [0,0], need_save=True)
-
 
 
 

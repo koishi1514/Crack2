@@ -129,3 +129,4 @@ log/*
 !log/.gitkeep
 output/*
 !output/.gitkeep
+0725_Ver/*

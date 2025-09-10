@@ -1,7 +1,7 @@
 import  argparse
 import os
 
-dataset = 'DeepCrack'
+dataset = 'CRACK500'
 # CRACK500, CFD, DeepCrack
 data_path = os.path.join('../dataset', dataset)
 root_path = '..'
@@ -15,7 +15,7 @@ parser.add_argument('--data_path', type=str,
 parser.add_argument('--dataset', type=str,
                     default=dataset, help='Name of Dataset')
 parser.add_argument('--exp', type=str,
-                    default='crack500_trained_ep80_bs8_lrsch_edited', help='experiment_name')
+                    default='deepcrack_trained_ep80_bs8_lrsch_edited', help='experiment_name')
 parser.add_argument('--model', type=str,
                     default='nnUNet_2', help='model_name')
 # nnUNet, nnUNet_2, Deepcrack, DeepLabV3+, unet
