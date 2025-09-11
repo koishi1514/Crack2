@@ -15,6 +15,7 @@ from networks.SimCrack.consnet import ConsNet
 from networks.DTrCNet.CTCNet import CTCNet
 from networks.DeeplabV3.modeling import deeplabv3plus_resnet50
 from networks.deepcrack import DeepCrack
+from networks.TransUNet.vit_seg_modeling import VisionTransformer
 
 
 def net_factory(net_type="unet", in_chns=1, class_num=3, args=None):
@@ -33,6 +34,16 @@ def net_factory(net_type="unet", in_chns=1, class_num=3, args=None):
                         in_channels=in_chns, classes=class_num).cuda()
     elif net_type == "pnet":
         net = PNet2D(in_chns, class_num, 64, [1, 2, 4, 8, 16]).cuda()
+
+    elif net_type == 'TransUNet':
+        from networks.TransUNet.vit_seg_modeling import CONFIGS
+        vit_config = CONFIGS['R50-ViT-B_16']
+        vit_config.n_classes = class_num
+        vit_config.n_skip = 3
+        vit_config.patches.grid = (int(args.patch_size[0] / 16), int(args.patch_size[1] / 16))
+
+        net = VisionTransformer(config = vit_config,img_size=args.patch_size,num_classes=class_num ).cuda()
+
     elif net_type == "nnUNet":
         net = initialize_network(threeD=False, num_classes=class_num).cuda()
     elif net_type == "nnUNet_1":

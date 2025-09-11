@@ -30,12 +30,12 @@ from networks.net_factory import net_factory
 from utils import losses, metrics, ramps
 from val import test_single_volume
 
-from configs.config_supervised import args
+# from configs.config_supervised import args
 # from configs.config_supervised_SCSegamba_for_Deepcrack_test import args
 # from configs.config_supervised_deepcrack_test import args
 
 # for debug
-# from configs.config_supervised_for_debug import args
+from configs.config_supervised_for_debug import args
 
 datasets = ("CRACK500", "DeepCrack")
 
@@ -62,7 +62,7 @@ def train(args, snapshot_path):
     def create_model(ema=False):
         # Network definition
         model = net_factory(net_type=args.model, in_chns=3,
-                            class_num=num_classes)
+                            class_num=num_classes, args= args)
         # model, _ = build(args)
         if ema:
             for param in model.parameters():
