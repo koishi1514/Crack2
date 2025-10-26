@@ -102,24 +102,11 @@ class BaseDataSets(Dataset):
         self.pseudo_labeled_name = []
 
 
-        # self.name_json_path = os.path.join(self._base_dir, "name.json")
-        # self.split_json_path = os.path.join(self._base_dir, "frame_split_{}.json".format(labeled_num) )
-
-        # with open(self.name_json_path, 'r') as f:
-        #     name_json = json.load(f)
-        # self.sample_name = name_json['file_name']
-        # self.sample_idx = self.sample_idx_labeled + self.sample_idx_unlabeled
-
-
-        # with open(self.split_json_path, 'r') as f1:
-        #     self.split_json = json.load(f1) # number idx
-        # self.img_data_dir = os.path.join(self._base_dir, "train"+"_img")
-        # self.label_dir = os.path.join(self._base_dir, "train"+"_lab")
         self.img_data_dir = os.path.join(self._base_dir, "cfd_image")
         self.label_dir = os.path.join(self._base_dir, "seg_gt")
         self.img_path_list, self.mask_path_list = preprocess(self.img_data_dir, self.label_dir)
 
-        if transform == 'weak':
+        if transform == 'weak' and self.split == 'train':
             self.transform = transforms.Compose([
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.RandomVerticalFlip(p=0.5),
@@ -133,41 +120,6 @@ class BaseDataSets(Dataset):
                 transforms.Resize(size=(256, 256), interpolation=transforms.InterpolationMode.NEAREST),
                 transforms.ToTensor()
             ])
-
-
-        # if self.split == "train":
-        #     self.split_idx = self.split_json['train_labeled_idx']
-        #     self.sample_name = [self.sample_name[i] for i in self.split_idx]
-        #
-        # if self.split == "val":
-        #     self.split_idx = self.split_json['{}_idx'.format(self.split)]
-        #     self.sample_name = [self.sample_name[i] for i in self.split_idx]
-        #
-        # if self.split == 'test':
-
-        # if self.split == "label_all" or self.split =='label_semi':
-        #     pass
-
-        # if self.split == 'retrain':
-        #     if addition == 'all':
-        #         # labeled_idx = self.split_json['train_labeled_idx']
-        #         unlabeled_idx = self.split_json['train_unlabeled_idx']
-        #         self.split_idx = self.split_json['train_labeled_idx'] + self.split_json['train_unlabeled_idx']
-        #         self.pseudo_labeled_name = [self.sample_name[i] for i in unlabeled_idx]
-        #         self.sample_name = [self.sample_name[i] for i in self.split_idx]
-        #
-        #     elif addition == 'reliable':
-        #
-        #         with open(self.reliable_path, 'r') as fr:
-        #             reliable_json = json.load(fr)
-        #
-        #         # labeled_idx = self.split_json['train_labeled_idx']
-        #
-        #         reliable_name = reliable_json['reliable_name']
-        #         self.split_idx = self.split_json['train_labeled_idx']
-        #         self.pseudo_labeled_name = reliable_name
-        #         self.sample_name = [self.sample_name[i] for i in self.split_idx] + reliable_name
-
 
 
     def __len__(self):

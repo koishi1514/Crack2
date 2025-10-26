@@ -30,6 +30,7 @@ class BaseDataSets(Dataset):
 
         self.sample_list = all_splits[self.split]
 
+
         if transform == 'weak' and self.split == 'train':
             self.transform = transforms.Compose([
                 transforms.RandomHorizontalFlip(p=0.5),

@@ -17,66 +17,6 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import math
 
-def blur(img, p=0.5):
-    if random.random() < p:
-        sigma = np.random.uniform(0.1, 2.0)
-        # img = img.filter(ImageFilter.GaussianBlur(radius=sigma))
-        blur = transforms.GaussianBlur(kernel_size=5, sigma=sigma)
-        img = blur(img)
-    return img
-
-
-def cutout(img, mask, p=0.5, size_min=0.02, size_max=0.4, ratio_1=0.3,
-           ratio_2=1/0.3, value_min=0, value_max=255, pixel_level=True):
-    if random.random() < p:
-        # img = np.array(img)
-        # mask = np.array(mask)
-
-        img_h, img_w, img_c = img.shape
-
-        while True:
-            size = np.random.uniform(size_min, size_max) * img_h * img_w
-            ratio = np.random.uniform(ratio_1, ratio_2)
-            erase_w = int(np.sqrt(size / ratio))
-            erase_h = int(np.sqrt(size * ratio))
-            x = np.random.randint(0, img_w)
-            y = np.random.randint(0, img_h)
-
-            if x + erase_w <= img_w and y + erase_h <= img_h:
-                break
-
-        if pixel_level:
-            # value = np.random.uniform(value_min, value_max, (erase_h, erase_w, img_c))
-            value = torch.empty(erase_h, erase_w, img_c).uniform_(value_min, value_max)
-        else:
-            # value = np.random.uniform(value_min, value_max)
-            value = torch.empty(1).uniform_(value_min, value_max)
-
-        img[y:y + erase_h, x:x + erase_w] = value
-        mask[y:y + erase_h, x:x + erase_w] = 1
-
-        # img = Image.fromarray(img.astype(np.uint8))
-        # mask = Image.fromarray(mask.astype(np.uint8))
-
-    return img, mask
-
-def StrongAugment(sample):
-    image, label = sample["image"], sample["label"]
-
-    if not torch.is_tensor(image):
-        np_to_tensor = transforms.ToTensor()
-        image = np_to_tensor(image)
-
-    if random.random() < 0.8:
-        image = transforms.ColorJitter(0.5, 0.5, 0.5, 0.25)(image)
-    image = transforms.RandomGrayscale(p=0.2)(image)
-    image = blur(image, p=0.5)
-    image, label = cutout(image, label, p=0.5)
-    image = image.type(torch.float32)
-    label = label.type(torch.uint8)
-    sample = {"image": image, "label": label}
-    return sample
-
 def preprocess(img_dir, label_dir):
     jpg_files = [file for file in os.listdir(img_dir) if file.endswith('.jpg')]
     png_files = [file for file in os.listdir(label_dir) if file.endswith('.png')]
@@ -119,7 +59,7 @@ class BaseDataSets(Dataset):
         self.label_dir = os.path.join(self._base_dir, self.split+"_lab")
         self.img_path_list, self.mask_path_list = preprocess(self.img_data_dir, self.label_dir)
 
-        if transform == 'weak':
+        if transform == 'weak' and self.split == 'train':
             self.transform = transforms.Compose([
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.RandomVerticalFlip(p=0.5),
@@ -133,40 +73,6 @@ class BaseDataSets(Dataset):
                 transforms.Resize(size=(256, 256), interpolation=transforms.InterpolationMode.NEAREST),
                 transforms.ToTensor()
             ])
-
-
-        # if self.split == "train":
-        #     self.split_idx = self.split_json['train_labeled_idx']
-        #     self.sample_name = [self.sample_name[i] for i in self.split_idx]
-        #
-        # if self.split == "val":
-        #     self.split_idx = self.split_json['{}_idx'.format(self.split)]
-        #     self.sample_name = [self.sample_name[i] for i in self.split_idx]
-        #
-        # if self.split == 'test':
-
-        # if self.split == "label_all" or self.split =='label_semi':
-        #     pass
-
-        # if self.split == 'retrain':
-        #     if addition == 'all':
-        #         # labeled_idx = self.split_json['train_labeled_idx']
-        #         unlabeled_idx = self.split_json['train_unlabeled_idx']
-        #         self.split_idx = self.split_json['train_labeled_idx'] + self.split_json['train_unlabeled_idx']
-        #         self.pseudo_labeled_name = [self.sample_name[i] for i in unlabeled_idx]
-        #         self.sample_name = [self.sample_name[i] for i in self.split_idx]
-        #
-        #     elif addition == 'reliable':
-        #
-        #         with open(self.reliable_path, 'r') as fr:
-        #             reliable_json = json.load(fr)
-        #
-        #         # labeled_idx = self.split_json['train_labeled_idx']
-        #
-        #         reliable_name = reliable_json['reliable_name']
-        #         self.split_idx = self.split_json['train_labeled_idx']
-        #         self.pseudo_labeled_name = reliable_name
-        #         self.sample_name = [self.sample_name[i] for i in self.split_idx] + reliable_name
 
 
 

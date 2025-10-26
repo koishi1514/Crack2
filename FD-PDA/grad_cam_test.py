@@ -75,11 +75,16 @@ def train(args, snapshot_path):
     def worker_init_fn(worker_id):
         random.seed(args.seed + worker_id)
 
+    #
+    # inp = torch.randn(10, 3, 256, 256).cuda()
+    # out = model(inp)
+    # print(out.shape)
 
+    # db_train = LabeledDatasets(base_dir=args.data_path, split="train", num=None, transform=transforms.Compose([
+    #     RandomGenerator(args.patch_size)]))
     db_train = BaseDataSets(base_dir=args.data_path, split="train", transform="weak")
-
-    #　ＤeepCrack数据集没有单独的验证集，使用训练集作为验证集
-    if args.dataset == 'DeepCrack' or args.dataset == 'AEL':
+    # db_val = BaseDataSets(base_dir=args.data_path, split="val", transform=None)
+    if args.dataset == 'DeepCrack':
         db_val = BaseDataSets(base_dir=args.data_path, split="train", transform=None)
     else:
         db_val = BaseDataSets(base_dir=args.data_path, split="val", transform=None)
