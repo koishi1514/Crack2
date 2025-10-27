@@ -31,7 +31,7 @@ import cv2
 # from configs.config_supervised import args
 # from configs.config_supervised_SCSegamba_for_Deepcrack_test import args
 # from configs.config_supervised_post_training_real_data import args
-from configs.config_supervised_post_training import args
+from configs_post.config_supervised_post_training import args
 from configs.config_supervised_post_training_deepcrack2crack500 import args
 from dataloaders.CRACK500_labeled import BaseDataSets as BaseDataSets_origin
 from test import draw_sem_seg_by_cv2_sum

@@ -1,10 +1,18 @@
 import  argparse
 import os
 
-dataset = 'CRACK500'  # Choose from: CRACK500, CFD, DeepCrack
-# CRACK500, CFD, DeepCrack
+dataset = 'TUT'
+# Choose from: CRACK500, CFD, DeepCrack, + CrackTree, CrackLS315, CRKWH200, GAPS384, TUT, AEL (for test only)
+model = 'nnUNet_2'
+# nnUNet_2 is our method
+# crackformer, crackmer, DeepCrack, CTCrackseg
+epoch = 80
+bs = 8
+lr = 0.001
+
 data_path = os.path.join('../dataset', dataset)
 root_path = '..'
+exp_name = f'{dataset}_trained_{model}_ep{epoch}_bs{bs}_lr{lr}'
 
 parser = argparse.ArgumentParser()
 
@@ -15,16 +23,16 @@ parser.add_argument('--data_path', type=str,
 parser.add_argument('--dataset', type=str,
                     default=dataset, help='Name of Dataset')
 parser.add_argument('--exp', type=str,
-                    default='crack500_trained_ep80_bs8_lrsch_edited', help='experiment_name')
+                    default=exp_name, help='experiment_name')
 parser.add_argument('--model', type=str,
-                    default='nnUNet_2', help='model_name')
+                    default=model, help='model_name')
 # nnUNet_2 is our method
 
 parser.add_argument('--max_iterations', type=int,
                     default=30000, help='maximum epoch number to train')
-parser.add_argument('--epoch_num', type=int, default=80,
+parser.add_argument('--epoch_num', type=int, default=epoch,
                     help='epochs')
-parser.add_argument('--batch_size', type=int, default=8,
+parser.add_argument('--batch_size', type=int, default=bs,
                     help='batch_size per gpu')
 # 5 is for CTCrackseg, 8 is for nnUNet, 16 is for crackformer
 parser.add_argument('--deterministic', type=int,  default=1,

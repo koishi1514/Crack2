@@ -30,14 +30,13 @@ from networks.net_factory import net_factory
 from utils import losses, metrics, ramps
 from val import test_single_volume
 
-# from configs.config_supervised import args
+from configs.config_supervised import args
 # from configs.config_supervised_SCSegamba_for_Deepcrack_test import args
 # from configs.config_supervised_deepcrack_test import args
 
 # for debug
-from configs.config_supervised_for_debug import args
+# from configs.config_supervised_for_debug import args
 
-datasets = ("CRACK500", "DeepCrack")
 
 try:
     import_dataset_name = "dataloaders."+args.dataset+"_labeled"
@@ -78,7 +77,7 @@ def train(args, snapshot_path):
 
     db_train = BaseDataSets(base_dir=args.data_path, split="train", transform="weak")
 
-    #　ＤeepCrack数据集没有单独的验证集，使用训练集作为验证集
+    #　DeepCrack数据集没有单独的验证集，使用训练集作为验证集
     if args.dataset == 'DeepCrack' or args.dataset == 'AEL':
         db_val = BaseDataSets(base_dir=args.data_path, split="train", transform=None)
     else:
