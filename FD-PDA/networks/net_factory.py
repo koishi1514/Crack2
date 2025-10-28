@@ -1,3 +1,5 @@
+import os.path
+
 from networks.efficientunet import Effi_UNet
 from networks.enet import ENet
 from networks.pnet import PNet2D
@@ -16,6 +18,8 @@ from networks.DTrCNet.CTCNet import CTCNet
 from networks.DeeplabV3.modeling import deeplabv3plus_resnet50
 from networks.deepcrack import DeepCrack
 from networks.TransUNet.vit_seg_modeling import VisionTransformer
+from networks.segment_anything import sam_model_registry
+from networks.delta.sam_adapter_lora_image_encoder import LoRA_Adapter_Sam
 
 
 def net_factory(net_type="unet", in_chns=1, class_num=3, args=None):
@@ -67,6 +71,12 @@ def net_factory(net_type="unet", in_chns=1, class_num=3, args=None):
         net = deeplabv3plus_resnet50(num_classes=class_num, pretrained_backbone=False).cuda()
     elif net_type == "DeepCrack":
         net = DeepCrack(num_classes=class_num).cuda()
+    elif net_type == "CrackSAM":
+        sam, img_emb_size = sam_model_registry['vit_h'](image_size = args.img_size, num_classes = args.num_classes,
+                                                        checkpoint = r'./checkpoints/sam_vit_h_4b8939.pth',
+                                                        pixel_mean = [0, 0, 0], pixel_std = [1, 1, 1])
+        net = LoRA_Adapter_Sam(sam, 32, 4).cuda()
+
     else:
         net = None
     return net

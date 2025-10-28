@@ -30,12 +30,12 @@ from networks.net_factory import net_factory
 from utils import losses, metrics, ramps
 from val import test_single_volume
 
-from configs.config_supervised import args
+# from configs.config_supervised import args
 # from configs.config_supervised_SCSegamba_for_Deepcrack_test import args
 # from configs.config_supervised_deepcrack_test import args
 
 # for debug
-# from configs.config_supervised_for_debug import args
+from configs.config_supervised_for_debug import args
 
 
 try:
@@ -98,7 +98,11 @@ def train(args, snapshot_path):
 
     ce_loss = CrossEntropyLoss()
     bce_loss = BCEWithLogitsLoss()
-    dice_loss = losses.DiceLoss(num_classes)
+
+    if args.model == 'CrackSAM':
+        dice_loss = losses.DiceLoss(num_classes+1)
+    else:
+        dice_loss = losses.DiceLoss(num_classes)
 
     writer = SummaryWriter(snapshot_path + '/log')
     logger.info("{} iterations per epoch".format(len(trainloader)))
@@ -125,20 +129,35 @@ def train(args, snapshot_path):
             volume_batch, label_batch = sampled_batch['image'], sampled_batch['label'].squeeze(1)
             volume_batch, label_batch = volume_batch.cuda(), label_batch.cuda()
 
-            outputs = model(volume_batch)
+            if args.model == 'CrackSAM':
+                outputs = model(volume_batch, False, args.img_size)
+                outputs = outputs['masks']
+            else:
+                outputs = model(volume_batch)
+
 
             if isinstance(outputs, tuple):
                 feature_maps = outputs[1:]
                 outputs = outputs[0]
 
 
+            outputs_classes = outputs.shape[1]
 
+            if outputs_classes == 1:
+                loss_bce = bce_loss(outputs, label_batch.unsqueeze(1))
+                outputs_soft = torch.sigmoid(outputs)
+                loss_dice = dice_loss(
+                    outputs_soft, label_batch.unsqueeze(1))
+
+            elif outputs_classes == 2:
+                loss_bce = ce_loss(outputs, label_batch.long())
+                loss_dice = dice_loss(
+                    outputs, label_batch.unsqueeze(1), softmax=True)
+            else:
+                print (outputs_classes)
             # outputs_soft = torch.sigmoid(outputs)
-            loss_bce = bce_loss(outputs, label_batch.unsqueeze(1))
-            outputs_soft = torch.sigmoid(outputs)
+            # loss_bce = bce_loss(outputs, label_batch.unsqueeze(1))
 
-            loss_dice = dice_loss(
-                outputs_soft, label_batch.unsqueeze(1))
 
             dice_loss_list.append(loss_dice.item())
             ce_loss_list.append(loss_bce.item())

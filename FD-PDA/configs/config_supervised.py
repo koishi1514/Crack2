@@ -9,6 +9,7 @@ model = 'nnUNet_2'
 epoch = 80
 bs = 8
 lr = 0.001
+img_size = 256
 
 data_path = os.path.join('../dataset', dataset)
 root_path = '..'
@@ -44,6 +45,7 @@ parser.add_argument('--weight_decay', type=float,  default=0.0001,
                     help='weight decay')
 parser.add_argument('--patch_size', type=list,  default=[256, 256],
                     help='patch size of network input')
+parser.add_argument('--img_size', type=int,  default=img_size)
 parser.add_argument('--seed', type=int,  default=1337, help='random seed')
 parser.add_argument('--num_classes', type=int,  default=1,
                     help='output channel of network')
