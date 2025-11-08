@@ -1,7 +1,7 @@
 import  argparse
 import os
 
-dataset = 'TUT'
+dataset = 'GAPS384'
 # Choose from: CRACK500, CFD, DeepCrack, + CrackTree, CrackLS315, CRKWH200, GAPS384, TUT, AEL (for test only)
 model = 'nnUNet_2'
 # nnUNet_2 is our method

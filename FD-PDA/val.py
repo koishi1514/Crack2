@@ -17,7 +17,7 @@ def calculate_metric_percase(pred, gt):
         return 0, 0
 
 
-def test_single_volume(case, net, patch_size=[256, 256]):
+def test_single_volume(case, net, patch_size=[256, 256], args= None):
     # drop batch
     # image = image.squeeze(0)
     # label = label.squeeze(0)
@@ -28,14 +28,19 @@ def test_single_volume(case, net, patch_size=[256, 256]):
 
     net.eval()
     with torch.no_grad():
-        out = net(image)
-        if isinstance(out, tuple):
-            out = out[0]
+        if args.model == 'CrackSAM':
+            out = net(image, False, args.img_size)['masks']
+            out_soft = torch.softmax(out, dim=1)
 
-        out_soft = torch.sigmoid(out)
+        else:
+            out = net(image)
+            if isinstance(out, tuple):
+                out = out[0]
+            out_soft = torch.sigmoid(out)
 
         out = out_soft.cpu().detach().numpy()
         prediction = out
+
 
     metric_list = []
 

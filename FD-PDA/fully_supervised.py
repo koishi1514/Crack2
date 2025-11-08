@@ -30,21 +30,17 @@ from networks.net_factory import net_factory
 from utils import losses, metrics, ramps
 from val import test_single_volume
 
-# from configs.config_supervised import args
+from configs.config_supervised import args
 # from configs.config_supervised_SCSegamba_for_Deepcrack_test import args
 # from configs.config_supervised_deepcrack_test import args
 
 # for debug
-from configs.config_supervised_for_debug import args
+# from configs.config_supervised_for_debug import args
 
+import_dataset_name = "dataloaders."+args.dataset+"_labeled"
+dataset_py = importlib.import_module(import_dataset_name)
+BaseDataSets = getattr(dataset_py, "BaseDataSets")
 
-try:
-    import_dataset_name = "dataloaders."+args.dataset+"_labeled"
-    dataset_py = importlib.import_module(import_dataset_name)
-    BaseDataSets = getattr(dataset_py, "BaseDataSets")
-
-except ImportError:
-    print(114514)
 
 def get_current_consistency_weight(epoch):
     # Consistency ramp-up from https://arxiv.org/abs/1610.02242
@@ -79,7 +75,7 @@ def train(args, snapshot_path):
 
     #　DeepCrack数据集没有单独的验证集，使用训练集作为验证集
     if args.dataset == 'DeepCrack' or args.dataset == 'AEL':
-        db_val = BaseDataSets(base_dir=args.data_path, split="train", transform=None)
+        db_val = BaseDataSets(base_dir=args.data_path, split="train", transform="weak")
     else:
         db_val = BaseDataSets(base_dir=args.data_path, split="val", transform=None)
 
@@ -204,7 +200,7 @@ def train(args, snapshot_path):
                 metric_list = []
                 for i_batch, sampled_batch in enumerate(valloader):
                     metric_i = test_single_volume(
-                        sampled_batch, model)
+                        sampled_batch, model, args=args)
                     metric_list.append((metric_i))
 
                 # metric_list = metric_list / len(db_val)
@@ -282,16 +278,6 @@ if __name__ == "__main__":
 
     if not os.path.exists(os.path.join(snapshot_path , 'log') ):
         os.makedirs(os.path.join(snapshot_path , 'log') )
-
-    # if os.path.exists(os.path.join(snapshot_path , 'log.txt')):
-    #     os.remove(os.path.join(snapshot_path , 'log.txt'))
-
-
-
-    # logging.basicConfig(filename=snapshot_path+"/log.txt", level=logging.DEBUG,
-    #                     format='[%(asctime)s.%(msecs)03d] %(message)s', datefmt='%H:%M:%S')
-    # logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
-    # logging.info(str(args))
 
     global logger
     logger = logging.getLogger("my_logger")

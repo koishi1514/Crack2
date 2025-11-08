@@ -3,17 +3,18 @@ import os
 
 dataset = 'CRACK500'
 # Choose from: CRACK500, CFD, DeepCrack, + CrackTree, CrackLS315, CRKWH200, GAPS384, TUT, AEL (for test only)
-model = 'CrackSAM'
+model = 'nnUNet_2'
 # nnUNet_2 is our method
 # crackformer, crackmer, DeepCrack, CTCrackseg
 epoch = 10
-bs = 2
+bs = 1
 lr = 0.001
 img_size = 256
 
 data_path = os.path.join('../dataset', dataset)
 root_path = '..'
-exp_name = f'{dataset}_trained_{model}_for_debug'
+# exp_name = f'{dataset}_trained_{model}_for_debug'
+exp_name = f'{dataset}_check'
 
 parser = argparse.ArgumentParser()
 
